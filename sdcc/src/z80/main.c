@@ -67,6 +67,8 @@ static char _gbz80_defaultRules[] = {
 Z80_OPTS z80_opts;
 
 static OPTION _z80_options[] = {
+  {0, OPTION_BO,              NULL, "<num> use code bank <num>"},
+  {0, OPTION_BA,              NULL, "<num> use data bank <num>"},
   {0, OPTION_CALLEE_SAVES_BC, &z80_opts.calleeSavesBC, "Force a called function to always save BC"},
   {0, OPTION_PORTMODE,        NULL, "Determine PORT I/O mode (z80/z180)"},
   {0, OPTION_ASM,             NULL, "Define assembler name (rgbds/asxxxx/isas/z80asm)"},
@@ -469,7 +471,7 @@ _parseOptions (int *pargc, char **argv, int *i)
 {
   if (argv[*i][0] == '-')
     {
-      if (IS_GB)
+      if (1)
         {
           if (!strncmp (argv[*i], OPTION_BO, sizeof (OPTION_BO) - 1))
             {
@@ -481,7 +483,8 @@ _parseOptions (int *pargc, char **argv, int *i)
               dbuf_printf (&buffer, "CODE_%u", bank);
               dbuf_c_str (&buffer);
               /* ugly, see comment in src/port.h (borutr) */
-              gbz80_port.mem.code_name = dbuf_detach (&buffer);
+              //gbz80_port.mem.code_name = dbuf_detach (&buffer);
+	      z80_port.mem.code_name = dbuf_detach (&buffer);
               options.code_seg = (char *) gbz80_port.mem.code_name;
               return TRUE;
             }
@@ -495,7 +498,8 @@ _parseOptions (int *pargc, char **argv, int *i)
               dbuf_printf (&buffer, "DATA_%u", bank);
               dbuf_c_str (&buffer);
               /* ugly, see comment in src/port.h (borutr) */
-              gbz80_port.mem.data_name = dbuf_detach (&buffer);
+              //gbz80_port.mem.data_name = dbuf_detach (&buffer);
+	      z80_port.mem.data_name = dbuf_detach (&buffer);
               return TRUE;
             }
         }
