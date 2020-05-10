@@ -64,7 +64,7 @@ AC_CHECK_PROGS(LEX, flex lex, :)
 dnl Don't use AC_PROG_YACC
 AC_CHECK_PROGS(YACC, 'bison -y' byacc yacc, :)
 
-AC_CHECK_PROGS(PYTHON, python2 python2.7 python2.6 python2.5 python2.4, python)
+AC_CHECK_PROGS(PYTHON, python3.6 python2.7 python2 python3, python)
 
 AC_DEFUN([SDCC_REQUIRE_PROG],
 [if test "$1" = ":"; then
@@ -77,9 +77,10 @@ SDCC_REQUIRE_PROG($LEX, flex)
 
 AC_LANG_C
 
-AC_CHECK_HEADERS(endian.h sys/endian.h machine/endian.h sys/isa_defs.h stdalign.h)
+AC_CHECK_HEADERS(endian.h sys/endian.h machine/endian.h sys/isa_defs.h)
 AC_LANG_PUSH([C++])
-AC_CHECK_HEADERS(stx/btree_set.h stx/btree_map.h,,AC_MSG_WARN([[STX library missing, using STL instead.]]))
+AC_CHECK_HEADERS(treedec/combinations.hpp,,AC_MSG_NOTICE([[treedec library missing, falling back to Thorup.]]))
+AC_CHECK_HEADERS(gala/graph.h)
 AC_CHECK_HEADERS(boost/graph/adjacency_list.hpp,,AC_MSG_ERROR([[boost library not found (boost/graph/adjacency_list.hpp).]]))
 AC_LANG_POP([C++])
 
@@ -95,10 +96,7 @@ esac
 
 # Checking for functions
 # ===========================================================================
-AC_CHECK_FUNCS(strerror)
-AC_CHECK_FUNCS(vsnprintf snprintf vsprintf mkstemp)
-AC_CHECK_FUNCS(strndup)
-AC_CHECK_FUNCS(setrlimit)
+AC_CHECK_FUNCS(strerror mkstemp strndup setrlimit backtrace_symbols_fd)
 
 
 # Macro definitions
@@ -370,6 +368,7 @@ dnl replace \\ by \
 $2=`echo "[$]$2" | sed 's,\\\\\\\\,\\\\,g'`
 ])
 
+AX_CXX_COMPILE_STDCXX_11
 
 # Checking characteristics of compilers and other programs
 # ===========================================================================
@@ -405,7 +404,8 @@ if test "$ac_cv_c_compiler_gnu" = "yes"; then
 
   WALL_FLAG="-Wall -Wno-parentheses"
   C99_FLAG="--std=c99"
-  MAKEDEP="$CC $sdcc_cv_MM"
+  # We use CXX instead of CC here, since some of the C++ source files require a C++ compiler even during dependency generation.
+  MAKEDEP="$CXX $sdcc_cv_MM"
 else
   sdcc_IS_SUNPRO
   if test "$sdcc_cv_c_compiler_sunpro" = "yes"; then
@@ -427,50 +427,6 @@ AC_PROG_CC_C99
 if test "$ac_cv_prog_cc_c99" != "no"; then
   CFLAGS="$ac_cv_prog_cc_c99 ${CFLAGS}"
 fi
-
-# SDCC_C_UNNAMED_STRUCT_TAG ()
-# chech whether C compiler supports tag in unnamed struct
-# -------------------------------------------------------------------------
-AC_DEFUN([SDCC_C_UNNAMED_STRUCT_TAG],
-[
-  if test "$ac_cv_c_compiler_gnu" = "yes"; then
-    sdcc_IS_VALID_OPTION(-fms-extensions)
-  else
-    sdcc_cv_c_fms_extensions=no
-  fi
-  AC_CACHE_CHECK(whether C supports tag in unnamed struct, sdcc_cv_c_unnamed_struct_tag,
-    if test "$sdcc_cv_c_fms_extensions" = "yes"; then
-      CFLAGS="-fms-extensions ${CFLAGS}"
-    fi
-
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
-      [
-struct s1 {
-  int a;
-};
-
-struct s2 {
-  struct s1;
-  int b;
-};
-      ],
-      [
-  struct s2 s;
-
-  s.a = 1;
-  s.b = 2;
-      ])],
-      [
-        sdcc_cv_[]_AC_LANG_ABBREV[]_unnamed_struct_tag=yes
-        AC_DEFINE_UNQUOTED(UNNAMED_STRUCT_TAG, 1, [Define to 1 if c supports tags in unnamed struct.])
-      ],
-      [
-        sdcc_cv_[]_AC_LANG_ABBREV[]_unnamed_struct_tag=no
-      ])
-  )
-])
-
-SDCC_C_UNNAMED_STRUCT_TAG
 
 # Checks for typedefs, structures, and compiler characteristics.
 # ===========================================================================
@@ -807,21 +763,22 @@ AC_DEFUN([AC_DO_PORT_ENABLER], [
 rm -f ports.all ports.build
 
 # Supported targets
-AC_DO_PORT(mcs51,  mcs51,  MCS51,  [Excludes the Intel mcs51 port])
-AC_DO_PORT(z80,    z80,    Z80,    [Excludes the Z80 port])
-AC_DO_PORT(z180,   z80,    Z180,   [Excludes the Z180 port])
-AC_DO_PORT(r2k,    z80,    R2K,    [Excludes the Rabbit 2000 port])
-AC_DO_PORT(r3ka,   z80,    R3KA,   [Excludes the Rabbit 3000A port])
-AC_DO_PORT(gbz80,  z80,    GBZ80,  [Excludes the Gameboy gbz80 port])
-AC_DO_PORT(tlcs90, z80,    TLCS90, [Excludes the TLCS-90 port])
-AC_DO_PORT(ds390,  ds390,  DS390,  [Excludes the DS390 port])
+AC_DO_PORT(mcs51,    mcs51,  MCS51,    [Excludes the Intel mcs51 port])
+AC_DO_PORT(z80,      z80,    Z80,      [Excludes the Z80 port])
+AC_DO_PORT(z180,     z80,    Z180,     [Excludes the Z180 port])
+AC_DO_PORT(r2k,      z80,    R2K,      [Excludes the Rabbit 2000 port])
+AC_DO_PORT(r3ka,     z80,    R3KA,     [Excludes the Rabbit 3000A port])
+AC_DO_PORT(gbz80,    z80,    GBZ80,    [Excludes the Gameboy gbz80 port])
+AC_DO_PORT(tlcs90,   z80,    TLCS90,   [Excludes the TLCS-90 port])
+AC_DO_PORT(ez80_z80, z80,    EZ80_Z80, [Excludes the EZ80-Z80 port])
+AC_DO_PORT(ds390,    ds390,  DS390,    [Excludes the DS390 port])
 AC_DEFINE_UNQUOTED(OPT_DISABLE_TININative, $OPT_DISABLE_DS390, [XXX])
-AC_DO_PORT(ds400,  ds390,  DS400,  [Excludes the DS400 port])
-AC_DO_PORT(pic14,  pic14,  PIC14,  [Excludes the PIC14 port])
-AC_DO_PORT(pic16,  pic16,  PIC16,  [Excludes the PIC16 port])
-AC_DO_PORT(hc08,   hc08,   HC08,   [Excludes the HC08 port])
-AC_DO_PORT(s08,    hc08,   S08,    [Excludes the S08 port])
-AC_DO_PORT(stm8,   stm8,   STM8,   [Excludes the STM8 port])
+AC_DO_PORT(ds400,    ds390,  DS400,    [Excludes the DS400 port])
+AC_DO_PORT(pic14,    pic14,  PIC14,    [Excludes the PIC14 port])
+AC_DO_PORT(pic16,    pic16,  PIC16,    [Excludes the PIC16 port])
+AC_DO_PORT(hc08,     hc08,   HC08,     [Excludes the HC08 port])
+AC_DO_PORT(s08,      hc08,   S08,      [Excludes the S08 port])
+AC_DO_PORT(stm8,     stm8,   STM8,     [Excludes the STM8 port])
 
 # Unsupported targets
 ####AC_DO_PORT_ENABLER(avr,   avr,   AVR,   [Includes the AVR port (disabled by default)])
@@ -917,14 +874,15 @@ if test $OPT_DISABLE_PIC16 = 0 && test $OPT_DISABLE_NON_FREE = 0; then
   test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_SUBDIRS(device/non-free/lib/pic16)
 fi
 
-if test $OPT_DISABLE_Z80 = 0 || test $OPT_DISABLE_Z180 = 0 || test $OPT_DISABLE_R2K = 0 || test $OPT_DISABLE_R3KA = 0 || test $OPT_DISABLE_GBZ80 = 0 || test $OPT_DISABLE_TLCS90 = 0; then
+if test $OPT_DISABLE_Z80 = 0 || test $OPT_DISABLE_Z180 = 0 || test $OPT_DISABLE_R2K = 0 || test $OPT_DISABLE_R3KA = 0 || test $OPT_DISABLE_GBZ80 = 0 || test $OPT_DISABLE_TLCS90 = 0 || test $OPT_DISABLE_EZ80_Z80 = 0; then
   AC_CONFIG_FILES([src/z80/Makefile])
 fi
 
-if test $OPT_DISABLE_Z80 = 0 || test $OPT_DISABLE_Z180 = 0; then
+if test $OPT_DISABLE_Z80 = 0 || test $OPT_DISABLE_Z180 = 0 || test $OPT_DISABLE_EZ80_Z80 = 0; then
   AC_CONFIG_FILES([sdas/asz80/Makefile])
   test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/z80/Makefile
-                                                       device/lib/z180/Makefile])
+                                                       device/lib/z180/Makefile
+                                                       device/lib/ez80_z80/Makefile])
 fi
 
 if test $OPT_DISABLE_R2K = 0 || test $OPT_DISABLE_R3KA = 0; then
@@ -946,7 +904,8 @@ fi
 if test $OPT_DISABLE_STM8 = 0; then
   AC_CONFIG_FILES([src/stm8/Makefile
                    sdas/asstm8/Makefile])
-  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/stm8/Makefile])
+  test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/stm8/Makefile
+                                                       device/lib/stm8-large/Makefile])
 fi
 
 test $OPT_DISABLE_DEVICE_LIB = 0 && AC_CONFIG_FILES([device/lib/Makefile])
@@ -1002,12 +961,14 @@ sdcc ${VERSION} is now configured for
   Build:                ${build}
   Host:                 ${host}
   Source directory:     ${srcdir}
+  Yacc:                 ${YACC}
   C compiler:           ${CC}
   CFLAGS:               ${CFLAGS}
   C++ compiler:         ${CXX}
   CXXFLAGS:             ${CXXFLAGS}
   CPPFLAGS:             ${CPPFLAGS}
   LDFLAGS:              ${LDFLAGS}
+  MAKEDEP:              ${MAKEDEP}
 
   ENABLED Ports:
     ds390               ${enable_ds390_port}
@@ -1023,6 +984,7 @@ sdcc ${VERSION} is now configured for
     r3ka                ${enable_r3ka_port}
     gbz80               ${enable_gbz80_port}
     tlcs90              ${enable_tlcs90_port}
+    ez80_z80            ${enable_ez80_z80_port}
     stm8                ${enable_stm8_port}
 
   Disable non-free lib: ${OPT_DISABLE_NON_FREE}

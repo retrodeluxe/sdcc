@@ -39,22 +39,22 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
  * INFO BREAKPOINTS command
  */
 
-//int
-//cl_info_bp_cmd::do_work(class cl_sim *sim,
-//			class cl_cmdline *cmdline, class cl_console *con)
 COMMAND_DO_WORK_UC(cl_info_bp_cmd)
 {
   int i;
 
-  con->dd_printf("Num Type       Disp Hit   Cnt   Address  What\n");
+  con->dd_printf("Num Type       Disp Hit   Cnt   Address  Cond  What\n");
   for (i= 0; i < uc->fbrk->count; i++)
     {
       class cl_brk *fb= (class cl_brk *)(uc->fbrk->at(i));
       const char *s= uc->disass(fb->addr, NULL);
-      con->dd_printf("%-3d %-10s %s %-5d %-5d 0x%06x %s\n", fb->nr,
+      con->dd_printf("%-3d %-10s %s %-5d %-5d 0x%06x %-5s %s\n", fb->nr,
                      "fetch", (fb->perm==brkFIX)?"keep":"del ",
-                     fb->hit, fb->cnt,
-                     fb->addr, s);
+                     fb->hit, fb->cnt, fb->addr,
+		     fb->condition()?"true":"false",
+		     s);
+      if (!(fb->commands.empty()))
+	con->dd_printf("     %s\n", (char*)(fb->commands));
       free((char *)s);
     }
   for (i= 0; i < uc->ebrk->count; i++)
@@ -64,14 +64,9 @@ COMMAND_DO_WORK_UC(cl_info_bp_cmd)
 		     "event", (eb->perm==brkFIX)?"keep":"del ",
 		     eb->hit, eb->cnt,
 		     eb->addr, eb->id);
+      if (!(eb->commands.empty()))
+	con->dd_printf("     %s\n", (char*)(eb->commands));
     }
-  /*t_addr a;
-  class cl_rom *r= (class cl_rom *)(sim->uc->mem(MEM_ROM));
-  for (a= 0; a < sim->uc->get_mem_size(MEM_ROM); a++)
-    {
-      if (r->bp_map->get(a))
-	con->dd_printf("0x%06x\n", a);
-	}*/
   return(0);
 }
 
@@ -80,9 +75,6 @@ COMMAND_DO_WORK_UC(cl_info_bp_cmd)
  * INFO REGISTERS command
  */
 
-//int
-//cl_info_reg_cmd::do_work(class cl_sim *sim,
-//			 class cl_cmdline *cmdline, class cl_console *con)
 COMMAND_DO_WORK_UC(cl_info_reg_cmd)
 {
   uc->print_regs(con);
@@ -120,9 +112,6 @@ COMMAND_DO_WORK_UC(cl_info_hw_cmd)
  * INFO STACK command
  */
 
-//int
-//cl_info_stack_cmd::do_work(class cl_sim *sim,
-//                          class cl_cmdline *cmdline, class cl_console *con)
 COMMAND_DO_WORK_UC(cl_info_stack_cmd)
 {
   int i;
@@ -145,39 +134,33 @@ COMMAND_DO_WORK_UC(cl_info_stack_cmd)
 COMMAND_DO_WORK_UC(cl_info_memory_cmd)
 {
   int i;
+  class cl_memory *mem= NULL;
+  class cl_cmd_arg *params[4]= { cmdline->param(0),
+				 cmdline->param(1),
+				 cmdline->param(2),
+				 cmdline->param(3) };
 
+  if (cmdline->syntax_match(uc, MEMORY))
+    {
+      mem= params[0]->value.memory.memory;
+      if (mem)
+	{
+	  mem->print_info("", con);
+	}
+      return false;
+    }
   con->dd_printf("Memory chips:\n");
   for (i= 0; i < uc->memchips->count; i++)
     {
       class cl_memory_chip *m= (class cl_memory_chip *)(uc->memchips->at(i));
-      if (m &&
-	  !m->hidden)
-	{
-	  char *n= (char*)(m->get_name());
-	  con->dd_printf("  0x%06x-0x%06x %8d %s (%d,%s,%s)\n",
-			 (unsigned int)(m->get_start_address()),
-			 (unsigned int)(m->highest_valid_address()),
-			 (unsigned int)(m->get_size()),
-			 n,
-			 m->width, m->data_format, m->addr_format);
-	}
+      m->print_info("  ", con);
     }
   con->dd_printf("Address spaces:\n");
   for (i= 0; i < uc->address_spaces->count; i++)
     {
       class cl_address_space *m=
 	(class cl_address_space *)(uc->address_spaces->at(i));
-      if (m &&
-	  !m->hidden)
-	{
-	  char *n= (char*)(m->get_name());
-	  con->dd_printf("  0x%06x-0x%06x %8d %s (%d,%s,%s)\n",
-			 (unsigned int)(m->get_start_address()),
-			 (unsigned int)(m->highest_valid_address()),
-			 (unsigned int)(m->get_size()),
-			 n,
-			 m->width, m->data_format, m->addr_format);
-	}
+      m->print_info("  ", con);
     }
   con->dd_printf("Address decoders:\n");
   for (i= 0; i < uc->address_spaces->count; i++)
@@ -189,28 +172,7 @@ COMMAND_DO_WORK_UC(cl_info_memory_cmd)
 	{
 	  class cl_address_decoder *d=
 	    (class cl_address_decoder *)(m->decoders->at(j));
-	  //con->dd_printf("%2d ", j);
 	  d->print_info(chars("  "), con);
-	  /*
-	  if (d->address_space)
-	    {
-	      con->dd_printf("%s ", d->address_space->get_name("unknown"));
-	      con->dd_printf(d->address_space->addr_format, d->as_begin);
-	      con->dd_printf(" ");
-	      con->dd_printf(d->address_space->addr_format, d->as_end);
-	    }
-	  else
-	    con->dd_printf("x");
-	  con->dd_printf(" -> ");
-	  if (d->memchip)
-	    {
-	      con->dd_printf("%s ", d->memchip->get_name("unknown"));
-	      con->dd_printf(d->memchip->addr_format, d->chip_begin);
-	    }
-	  else
-	    con->dd_printf("x");
-	  con->dd_printf(" %s\n", (d->activated)?"activated":"inactive");
-	  */
 	}
     }
   return(0);
@@ -226,10 +188,25 @@ COMMAND_DO_WORK_UC(cl_info_var_cmd)
 {
   class cl_var *v;
   int i;
+  class cl_cmd_arg *params[1]= { cmdline->param(0) };
+  char *s= NULL;
   
+  if (cmdline->syntax_match(uc, STRING))
+    {
+      s= params[0]->get_svalue();
+      if (!s ||
+	  !*s)
+	s= NULL;
+    }
   for (i= 0; i < uc->vars->count; i++)
     {
       v= (class cl_var *)(uc->vars->at(i));
+      if ((s == NULL) ||
+	  (
+	   (strstr(v->as->get_name(), s) != NULL) ||
+	   (strstr(v->get_name(), s) != NULL)
+	   )
+	  )
       v->print_info(con);
     }
   return 0;

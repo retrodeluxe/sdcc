@@ -46,7 +46,7 @@ populate the TableLite container object.
 .. [Yale Web Style Manual] http://info.med.yale.edu/caim/manual/contents.html
 """
 
-import string, re, time, os
+import string, re, time, os, sys
 
 __author__ = 'Robin Friedrich   friedrich@pythonpros.com'
 __version__ = '2.2.2'
@@ -88,7 +88,7 @@ class StringTemplate:
         if len(self.delimiters) != 2:
             raise ValueError("delimiter argument must be a pair of strings")
         self.delimiter_width = len(self.delimiters[0])
-        delimiters = map(re.escape, self.delimiters)
+        delimiters = list(map(re.escape, self.delimiters))
         self.subpatstr = delimiters[0] + "[\w_]+" + delimiters[1]
         self.subpat = re.compile(self.subpatstr)
         self.substitutions = substitutions or {}
@@ -98,7 +98,7 @@ class StringTemplate:
         self.source = template
     
     def keys(self):
-        return self.substitutions.keys()
+        return list(self.substitutions.keys())
 
     def __setitem__(self, name, value):
         self.substitutions[name] = value
@@ -130,7 +130,7 @@ class StringTemplate:
             matched = self.subpat.search(source[i:])
         else:
             output.append(source[i:])
-        return string.join(output, '')
+        return "".join(output)
     
     def write(self, filename = None):
         """Emit the Document HTML to a file or standard output.
@@ -143,15 +143,20 @@ class StringTemplate:
             if os.path.exists(filename):
                 s = str(self)
                 if compare_s2f(s, filename):
-                    f = open(filename, 'w')
+                    if sys.version_info[0]<3:
+                        f = open(filename, 'w')
+                    else:
+                        f = open(filename, 'w', encoding='latin-1')
                     f.write(str(self))
                     f.close()
             else:
-                f = open(filename, 'w')
+                if sys.version_info[0]<3:
+                    f = open(filename, 'w')
+                else:
+                    f = open(filename, 'w', encoding='latin-1')
                 f.write(str(self))
                 f.close()
         else:
-            import sys
             sys.stdout.write(str(self))
 
 class TemplateDocument(StringTemplate):
@@ -182,7 +187,10 @@ class TemplateDocument(StringTemplate):
     length; for example ['##+', '##'] is invalid.
     """
     def set_template(self, template):
-        f = open(template)
+        if sys.version_info[0]<3:
+            f = open(template)
+        else:
+            f = open(template, encoding='latin-1')
         self.source = f.read()
         f.close()
 
@@ -191,7 +199,10 @@ def compare_s2f(s, f2):
 
     BUFSIZE = 8192
     i = 0
-    fp2 = open(f2)
+    if sys.version_info[0]<3:
+        fp2 = open(f2)
+    else:
+        fp2 = open(f2, encoding='latin-1')
     try:
         while 1:
             try:

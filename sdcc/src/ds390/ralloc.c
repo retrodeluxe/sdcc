@@ -39,6 +39,8 @@
 
 #define D(x)
 
+extern char **fReturnDS390;
+
 /* Global data */
 static struct
 {
@@ -1151,20 +1153,20 @@ willCauseSpill (int nr, int rt)
   return 1;
 }
 
-/*-----------------------------------------------------------------*/
+/*------------------------------------------------------------------*/
 /* positionRegs - the allocator can allocate same registers to res- */
-/* ult and operand, if this happens make sure they are in the same */
-/* position as the operand otherwise chaos results                 */
-/*-----------------------------------------------------------------*/
+/* ult and operand, if this happens make sure they are in the same  */
+/* position as the operand otherwise chaos results                  */
+/*------------------------------------------------------------------*/
 static int
-positionRegs (symbol * result, symbol * opsym, int chOp)
+positionRegs (symbol *result, symbol *opsym, int chOp)
 {
   int count = min (result->nRegs, opsym->nRegs);
   int i, j = 0, shared = 0;
   int change = 0;
 
   /* if the result has been spilt then cannot share */
-  if (opsym->isspilt)
+  if (result->isspilt || opsym->isspilt)
     return 0;
 
   for (;;)
@@ -1194,6 +1196,46 @@ xchgPositions:
             opsym->regs[j] = tmp;
             change++;
           }
+      else
+        return change;
+    }
+}
+
+/*-----------------------------------------------------------------*/
+/* positionRegs - the allocator can allocate the registers of the  */
+/* return value to the result, if this happens make sure they are  */
+/* in the same position as the return value otherwise chaos results*/
+/*-----------------------------------------------------------------*/
+static int
+positionRegsReturned (symbol *result)
+{
+  int count = result->nRegs;
+  int i, j = 0, shared = 0;
+  int change = 0;
+
+  /* if the result has been spilt then cannot share */
+  if (result->isspilt)
+    return 0;
+
+  for (;;)
+    {
+      shared = 0;
+      /* first make sure that they actually share */
+      for (i = 0; i < count; i++)
+        for (j = 0; j < count; j++)
+          if (!strcmp(result->regs[i]->name, fReturnDS390[j]) && i != j)
+            {
+              shared = 1;
+              goto xchgPositions;
+            }
+xchgPositions:
+      if (shared)
+        {
+            reg_info *tmp = result->regs[i];
+            result->regs[i] = result->regs[j];
+            result->regs[j] = tmp;
+            change++;
+        }
       else
         return change;
     }
@@ -1472,7 +1514,7 @@ serialRegAssign (eBBlock ** ebbs, int count)
 
               /* if we need ptr regs for the right side
                  then mark it */
-              if (POINTER_GET (ic) && IS_SYMOP (IC_LEFT (ic)) && getSize (OP_SYMBOL (IC_LEFT (ic))->type) <= (unsigned) PTRSIZE)
+              if (POINTER_GET (ic) && IS_SYMOP (IC_LEFT (ic)) && getSize (OP_SYMBOL (IC_LEFT (ic))->type) <= (unsigned) NEARPTRSIZE)
                 {
                   ds390_ptrRegReq++;
                   ptrRegSet = 1;
@@ -1510,6 +1552,11 @@ serialRegAssign (eBBlock ** ebbs, int count)
                     {
                       positionRegs (OP_SYMBOL (IC_RESULT (ic)), OP_SYMBOL (IC_RIGHT (ic)), 0);
                     }
+                }
+
+              if (ic->op == CALL || ic->op == PCALL || ic->op == RECEIVE)
+                {
+                  positionRegsReturned (OP_SYMBOL (IC_RESULT (ic)));
                 }
 
               if (ptrRegSet)
@@ -2045,9 +2092,9 @@ regTypeNum ()
           sym->nRegs = ((IS_AGGREGATE (sym->type) || sym->isptr) ?
                         getSize (sym->type = aggrToPtr (sym->type, FALSE)) : getSize (sym->type));
 
-          if (sym->nRegs > 4)
+          if (sym->nRegs > 8)
             {
-              fprintf (stderr, "allocated more than 4 or 0 registers for type ");
+              fprintf (stderr, "allocated more than 8 or 0 registers for type ");
               printTypeChain (sym->type, stderr);
               fprintf (stderr, "\n");
             }

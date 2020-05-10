@@ -523,6 +523,7 @@ rliveClear (eBBlock **ebbs, int count)
 /* rlivePoint - for each point compute the ranges that are alive   */
 /* The live range is only stored for ITEMPs; the same code is used */
 /* to find use of unitialized AUTOSYMs (an ITEMP is an AUTOSYM).   */
+/* also, update funcUsesVolatile flag for current function         */
 /*-----------------------------------------------------------------*/
 static void
 rlivePoint (eBBlock ** ebbs, int count, bool emitWarnings)
@@ -530,6 +531,8 @@ rlivePoint (eBBlock ** ebbs, int count, bool emitWarnings)
   int i, key;
   eBBlock *succ;
   bitVect *alive;
+
+  bool uses_volatile = false;
 
   /* for all blocks do */
   for (i = 0; i < count; i++)
@@ -539,6 +542,8 @@ rlivePoint (eBBlock ** ebbs, int count, bool emitWarnings)
       /* for all instructions in this block do */
       for (ic = ebbs[i]->sch; ic; ic = ic->next)
         {
+          uses_volatile |= POINTER_GET (ic) && IS_VOLATILE (operandType (IC_LEFT(ic))->next) || IS_OP_VOLATILE (IC_LEFT(ic)) || IS_OP_VOLATILE (IC_RIGHT(ic));
+          uses_volatile |= POINTER_SET (ic) && IS_VOLATILE (operandType (IC_RESULT(ic))->next) || IS_OP_VOLATILE (IC_RESULT(ic));
 
 	  if (!ic->rlive)
 	    ic->rlive = newBitVect (operandKey);
@@ -681,6 +686,9 @@ rlivePoint (eBBlock ** ebbs, int count, bool emitWarnings)
 	}
 
     }
+
+  if(currFunc)
+    currFunc->funcUsesVolatile = uses_volatile;
 }
 
 /*-----------------------------------------------------------------*/
@@ -940,6 +948,9 @@ dumpIcRlive (eBBlock ** ebbs, int count)
 }
 #endif
 
+/*-----------------------------------------------------------------*/
+/* Visit all iCodes reachable from ic                              */
+/*-----------------------------------------------------------------*/
 static void visit (set **visited, iCode *ic, const int key)
 {
   symbol *lbl;
@@ -980,16 +991,16 @@ static void visit (set **visited, iCode *ic, const int key)
 /* Such temporaries can result from GCSE and losrpe,               */
 /* And can confuse register allocation and rematerialization.      */
 /*-----------------------------------------------------------------*/
-void
+int
 separateLiveRanges (iCode *sic, ebbIndex *ebbi)
 {
-  iCode *ic;
   set *candidates = 0;
   symbol *sym;
+  int num_separated = 0;
 
   // printf("separateLiveRanges()\n");
 
-  for (ic = sic; ic; ic = ic->next)
+  for (iCode *ic = sic; ic; ic = ic->next)
     {
       if (ic->op == IFX || ic->op == GOTO || ic->op == JUMPTABLE || !IC_RESULT (ic) || !IS_ITEMP (IC_RESULT (ic)) || bitVectnBitsOn (OP_DEFS (IC_RESULT (ic))) <= 1 || isinSet (candidates, OP_SYMBOL (IC_RESULT (ic))))
         continue;
@@ -998,28 +1009,38 @@ separateLiveRanges (iCode *sic, ebbIndex *ebbi)
     }
 
   if (!candidates)
-    return;
+    return (0);
 
   for(sym = setFirstItem (candidates); sym; sym = setNextItem (candidates))
     {
       // printf("Looking at %s, %d definitions\n", sym->name, bitVectnBitsOn (sym->defs));
 
-      int i;
       set *defs = 0;
+      set *uses = 0;
+      bool skip_uses = false;
 
-      for (i = 0; i < sym->defs->size; i++)
-        if (bitVectBitValue (sym->defs, i))
-          {
-            iCode *dic;
-            if(dic = hTabItemWithKey (iCodehTab, i))
-              addSet (&defs, hTabItemWithKey (iCodehTab, i));
-            else
-              {
-                werror (W_INTERNAL_ERROR, __FILE__, __LINE__, "Definition not found");
-                return;
-              }
-          }
-
+      for (int i = 0; i < sym->defs->size; i++)
+        {
+          if (bitVectBitValue (sym->defs, i))
+            {
+              iCode *dic;
+              if(dic = hTabItemWithKey (iCodehTab, i))
+                addSet (&defs, dic);
+              else
+                {
+                  werror (W_INTERNAL_ERROR, __FILE__, __LINE__, "Definition not found");
+                  return (num_separated);
+                }
+            }
+          if (bitVectBitValue (sym->uses, i))
+            {
+              iCode *uic;
+              if(uic = hTabItemWithKey (iCodehTab, i))
+                addSet (&uses, uic);
+              else
+                skip_uses = true; // werror (W_INTERNAL_ERROR, __FILE__, __LINE__, "Use not found"); // return (num_separated); seems too harsh.
+            }
+        }
       do
         {
           set *visited = 0;
@@ -1043,8 +1064,8 @@ separateLiveRanges (iCode *sic, ebbIndex *ebbi)
           do
             {
               oldsize = elementsInSet(visited);
-              ic = setFirstItem (defs);
-              for(ic = setNextItem (defs); ic; ic = setNextItem (defs))
+              setFirstItem (defs);
+              for(iCode *ic = setNextItem (defs); ic; ic = setNextItem (defs))
                 {
                   // printf("Looking at other def at %d now\n", ic->key);
                   set *visited2 = 0;
@@ -1071,7 +1092,7 @@ separateLiveRanges (iCode *sic, ebbIndex *ebbi)
 
               // printf("Splitting %s from %s, using def at %d, op %d\n", OP_SYMBOL_CONST(tmpop)->name, sym->name, ((iCode *)(setFirstItem (newdefs)))->key, ((iCode *)(setFirstItem (newdefs)))->op);
 
-              for (ic = setFirstItem (visited); ic; ic = setNextItem (visited))
+              for (iCode *ic = setFirstItem (visited); ic; ic = setNextItem (visited))
                 {
                   if (IC_LEFT (ic) && IS_ITEMP (IC_LEFT (ic)) && OP_SYMBOL (IC_LEFT (ic)) == sym)
                     IC_LEFT (ic) = operandFromOperand (tmpop);
@@ -1085,18 +1106,143 @@ separateLiveRanges (iCode *sic, ebbIndex *ebbi)
                       IC_RESULT (ic) = operandFromOperand (tmpop);
                       if (pset)
                         IC_RESULT(ic)->isaddr = TRUE;
+                      else
+                        bitVectUnSetBit (sym->defs, ic->key);
                     }
                   bitVectUnSetBit (sym->uses, ic->key);
+
+                  skip_uses = true;
+                  num_separated++;
                 }
             }
+          else if (!skip_uses)
+            {      
+              set *undefined_uses = 0;
+              undefined_uses = subtractFromSet (uses, visited, THROW_NONE);
+
+              // Eliminate uses of undefined variables.
+              for (iCode *ic = setFirstItem (undefined_uses); ic; ic = setNextItem (undefined_uses))
+                {
+                  iCode *prev = ic->prev;
+                  iCode *next = ic->next;
+                  if (prev && next)
+                    {
+                      prev->next = next;
+                      next->prev = prev;
+                    }
+
+                  bitVectUnSetBit (sym->uses, ic->key);
+                  if (IS_SYMOP (IC_RESULT (ic)))
+                    bitVectUnSetBit (OP_DEFS (IC_RESULT (ic)), ic->key);
+                }
+
+              deleteSet (&undefined_uses);
+            }
+
           deleteSet (&newdefs);
           deleteSet (&visited);
         }
       while (elementsInSet(defs) > 1);
 
       deleteSet (&defs);
+      deleteSet (&uses);
     }
 
   deleteSet (&candidates);
+
+  return (num_separated);
+}
+
+/*-----------------------------------------------------------------*/
+/* Shorten live ranges by swapping order of operations             */
+/*-----------------------------------------------------------------*/
+int
+shortenLiveRanges (iCode *sic, ebbIndex *ebbi)
+{
+  int change = 0;
+
+  for (iCode *ic = sic; ic; ic = ic->next)
+    {
+      iCode *ifx = 0;
+
+      iCode *pic = ic->prev;
+      iCode *nic = ic->next;
+
+      if (!pic || !nic)
+        continue;
+
+      if (ic->op == IFX || nic->op == IFX)
+        continue;
+
+      if (nic->op == IPUSH || nic->op == SEND)
+        continue;
+
+      if (pic->op != '=' || !IS_ITEMP (IC_RESULT (pic)) || bitVectnBitsOn (OP_DEFS (IC_RESULT (pic))) != 1)
+        continue;
+
+      if (IC_LEFT (nic) != IC_RESULT (pic) && IC_RIGHT (nic) != IC_RESULT (pic) || bitVectnBitsOn (OP_USES (IC_RESULT (pic))) != 1)
+        continue;
+
+      if (IS_OP_VOLATILE (IC_RIGHT (pic)) || IS_OP_VOLATILE (IC_LEFT (nic)) || IS_OP_VOLATILE (IC_RIGHT (nic)) || IS_OP_VOLATILE (IC_RESULT (nic)))
+        continue;
+
+      if (isOperandEqual (IC_RESULT (pic), IC_LEFT (ic)) || isOperandEqual (IC_RESULT (pic), IC_RIGHT (ic)))
+        continue;
+
+      if (isOperandEqual (IC_RESULT (ic), IC_LEFT (nic)) || isOperandEqual (IC_RESULT (ic), IC_RIGHT (nic)))
+        continue;
+
+      if ((POINTER_SET (nic) || isOperandGlobal (IC_RESULT (nic))) && (POINTER_GET (ic) || isOperandGlobal (IC_LEFT (ic)) || isOperandGlobal (IC_RIGHT (ic))) ||
+        (POINTER_GET (nic) || isOperandGlobal (IC_LEFT (nic)) || isOperandGlobal (IC_RIGHT (nic))) && (POINTER_SET (ic) || POINTER_SET (nic) && isOperandGlobal (IC_RESULT (ic))))
+        continue;
+
+      if (isOperandGlobal (IC_RIGHT (pic))) // Might result in too many global operands per op for backend.
+        continue;
+
+      if (ifx = ifxForOp (IC_RESULT (nic), nic))
+        {
+          const symbol *starget = IC_TRUE (ifx) ? IC_TRUE (ifx) : IC_FALSE (ifx);
+          const iCode *itarget = eBBWithEntryLabel(ebbi, starget)->sch;
+
+          if (nic->next != ifx || bitVectBitValue(itarget->rlive, IC_RESULT (ic)->key))
+            continue;
+        }
+
+      if (IC_LEFT (nic) == IC_RESULT (pic))
+        IC_LEFT (nic) = IC_RIGHT (pic);
+      if (IC_RIGHT (nic) == IC_RESULT (pic))
+        IC_RIGHT (nic) = IC_RIGHT (pic);
+      bitVectUnSetBit (OP_USES (IC_RESULT (pic)), nic->key);
+      if (IS_SYMOP (IC_RIGHT (pic)))
+        bitVectSetBit (OP_USES (IC_RIGHT (pic)), nic->key);
+
+      // Assignment to self will get optimized out later
+      IC_LEFT (pic) = IC_RESULT (pic); 
+      bitVectSetBit (OP_USES (IC_RESULT (pic)), pic->key);
+
+      pic->next = nic;
+      nic->prev = pic;
+      ic->prev = nic;
+      ic->next = nic->next;
+      nic->next = ic;
+      if (ic->next)
+        ic->next->prev = ic;
+
+      if (ifx) // Move calculation beyond ifx.
+        {
+          ifx->prev = ic->prev;
+          ic->next = ifx->next;
+          ifx->next = ic;
+          ic->prev = ifx;
+
+          ifx->prev->next = ifx;
+          if (ic->next)
+            ic->next->prev = ic;
+        }
+
+       change++;
+    }
+
+  return (change);
 }
 

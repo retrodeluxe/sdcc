@@ -24,7 +24,7 @@
               <b><i>Maxim</i></b> (formerly <b><i>Dallas</i></b>) <b><i>DS80C390</i></b> variants,
               <b><i>Freescale</i></b> (formerly <b><i>Motorola</i></b>) <b><i>HC08</i></b> based <b><i>(hc08, s08)</i></b>,
               <b><i>Zilog Z80</i></b> based MCUs <b><i>(z80, z180, gbz80, Rabbit 2000/3000, Rabbit 3000A, TLCS-90)</i></b> and
-			  <b><i>STMicroelectronics STM8</i></b>.
+              <b><i>STMicroelectronics STM8</i></b>.
               Work is in progress on supporting the <b><i>Microchip PIC16</i></b> and <b><i>PIC18</i></b>
               targets. It can be retargeted for other microprocessors.</p>
            <p>SDCC suite is a collection of several components derived from different sources with
@@ -50,52 +50,47 @@
                 <li>adaptable MCU specific backend that should be well suited for other 8 bit MCUs</li>
                 <li>independent rule based peep hole optimizer.</li>
                 <li>a full range of data types: <b>char</b> (<i>8</i> bits, 1 byte), <b>short</b> (<i>16</i> bits, 2 bytes),
-                  <b>int</b> (<i>16</i> bits, 2 bytes), <b>long</b> (<i>32</i> bit, 4 bytes), <b>float</b> (4 byte IEEE) and
-                  <b>_Bool</b>/<b>bool</b>;<br />
-                  support for <b>long long</b> (<i>64</i> bit, 8 bytes) data types for the z80, z180,
-                  r2k, r3ka, gbz80, hc08, s08 and stm8 targets.</li>
+                  <b>int</b> (<i>16</i> bits, 2 bytes), <b>long</b> (<i>32</i> bit, 4 bytes), <b>long long</b> (<i>64</i> bit, 8 bytes), <b>float</b> (4 byte IEEE) and
+                  <b>_Bool</b>/<b>bool</b>.</li>
                 <li>the ability to add inline assembler code anywhere in a function.</li>
                 <li>the ability to report on the complexity of a function to help decide what should be re-written in assembler.</li>
                 <li>a good selection of automated regression tests.</li>
               </ul></li>
             </ul>
-            <p><b>SDCC</b> was written by Sandeep Dutta and released under a <b>GPL</b> license.
+            <p><b>SDCC</b> was originally written by Sandeep Dutta and released under a <b>GPL</b> license.
               Since its initial release there have been numerous bug fixes and improvements.
               As of December 1999, the code was moved to SourceForge where all the "users
               turned developers" can access the same source tree. SDCC is constantly being
               updated with all the users' and developers' input.</p>
 
             <!-- START NEWS -->
+            
             <h2><a name="News"></a>News</h2>
 
-            <p><i><b>June 12th, 2016: Small Device C Compiler 3.6.0 released.</b></i></p>
-            <p>A new release of SDCC, the portable optimizing compiler for 8051, DS390, Z80, Z180, Rabbit 2000,
+            <p><i><b>Sep 27th, 2018: SDCC 3.8.0  released.</b></i></p>
+            <p>A new release of SDCC, the portable optimizing compiler for 8051, DS390, Z80, Z180, Rabbit 2000, GBZ80, TLCS-90,
               HC08, STM8 and PIC microprocessors is now available
               (<a href="http://sdcc.sourceforge.net" target="_new">http://sdcc.sourceforge.net</a>).
-              Sources, documentation and binaries compiled for x86 Linux, x86 and x64 MS Windows and
-              x86 and PPC Mac OS X are available. </p>
-            <p>SDCC 3.6.0 Feature List:</p>
+              Sources, documentation and binaries for GNU/Linux amd64, Windows amd64, macOS amd64 and Windows x86 are available.</p>
+            <p>SDCC 3.8.0 Feature List:</p>
             <ul>
-              <li>Merged upstream binutils 2.25</li>
-              <li>New memory management with lower overhead</li>
-              <li>Changed default language dialect to --std-sdcc11</li>
-              <li>Diagnostic for missing type specifier: No implicit int outside of C90 mode anymore</li>
-              <li>C11 generic selections</li>
-              <li>char type is now unsigned by default (old behaviour can be restored using --fsigned-char)</li>
-              <li>Character constants are now of type int instead of char.</li>
-              <li>ISO C95 and ISO C11 wide character constants</li>
-              <li>ISO C95 and ISO C11 wide string literals</li>
-              <li>Basic standard library support for wide characters: c16rtomb(), mbrtoc16(), mbsinit(), mbtowc(), mbrlen(), mbrtoc32, c32rtomb(), mbrtowc(), wcrtomb(), mblen(), wctomb()</li>
-              <li>Treat all ports the same in the manual (i.e. mcs51-specific stuff is now clearly described as such)</li>
-              <li>Reorganized interrupt handling for z80, z180, r2k, r3ka, tlcs90, gbz80 backends</li>
-              <li>Workaround for stm8 division hardware bug</li>
-              <li>ELF/DWARF support for stm8</li>
-              <li>Output symbol table for ELF</li>
-              <li>pic16 port now uses standard-compliant crt0iz that initializes static and globals to 0 by default</li>
+              <li>Additional general utility function: bsearch().</li>
+              <li>Support for rematerialization in the stm8 backend reduces register pressure and stack usage.</li>
+              <li>Merged upstream GNU binutils 2.30</li>
+              <li>All Python code is now fully compatible with both Python 2.7 and Python 3.6, so Python 3 can be used instead of Python 2.</li>
+              <li>Regression testing for diagnostics.</li>
+              <li>Improved handling of local bool variables in the mcs51 backend substantially reduces code size.</li>
+              <li>Large memory model for stm8 for 24-bit codespace allows using more than 32KB of Flash for code.</li>
+              <li>New optimizations for calls to some standard library function (printf(), puts(), strcpy()).</li>
+              <li>The type of true and false from stdbool.h change from int to bool.</li>
+              <li>New C2X mode (--std-c2x, --std-sdcc2x, #pragma std_c2x) adds support for one-argument static_assert variant.</li>
+              <li>Intermingling of declarations and statements (ISO C99).</li>
+              <li>Support headers for AX8052 devices.</li>
+              <li>Adopted GCC 8.2 regression tests (execute part of the GCC C torture tests).</li>
             </ul>
-            <p>Numerous feature requests and bug fixes are included as well.</p>
+            <p>Numerous other new features and bug fixes are included as well.</p>
             <p>You can download the release from:<br />
-              <a href="https://sourceforge.net/projects/sdcc/files/" target="_new">https://sourceforge.net/projects/sdcc/files/</a></p>
+              <a href="https://sourceforge.net/projects/sdcc/files/">https://sourceforge.net/projects/sdcc/files/</a></p>
 
             <!-- END NEWS -->
 
@@ -252,17 +247,50 @@
 
             <h2><a name="Past_news"></a>Past news</h2>
 
-            <p><i><b>June 5th, 2016: SDCC 3.6.0 RC2 released.</b></i></p>
-            <p>SDCC 3.6.0 Release Candidate 2 source, doc and binary packages for x86 Linux,
-              32 and 64 bit Windows and universal Mac OS X are available in corresponding folders at:
+            <p><i><b>Sep 17th, 2018: SDCC 3.8.0 RC1 released.</b></i></p>
+            <p>SDCC 3.8.0 Release Candidate 1 source, doc and binary packages for amd64 GNU/Linux, 32 and 64 bit Windows and amd64 macOS are available in corresponding folders at:
               <a href="http://sourceforge.net/projects/sdcc/files/">
               http://sourceforge.net/projects/sdcc/files/</a>.</p>
 
-            <p><i><b>May 30th, 2016: SDCC 3.6.0 RC1 released.</b></i></p>
-            <p>SDCC 3.6.0 Release Candidate 1 source, doc and binary packages for x86 Linux,
-              32 and 64 bit Windows and universal Mac OS X are available in corresponding folders at:
-              <a href="http://sourceforge.net/projects/sdcc/files/">
-              http://sourceforge.net/projects/sdcc/files/</a>.</p>
+            <p><i><b>Mar 1st, 2018: SDCC 3.7.0 released.</b></i></p>
+            <p>A new release of SDCC, the portable optimizing compiler for 8051, DS390, Z80, Z180, Rabbit 2000, GBZ80, TLCS-90,
+              HC08, STM8 and PIC microprocessors is now available
+              (<a href="http://sdcc.sourceforge.net" target="_new">http://sdcc.sourceforge.net</a>).
+              Sources and documentation are available (for 3.8.0 we are aiming to bring back binary releases).</p>
+            <p>SDCC 3.7.0 Feature List:</p>
+            <ul>
+              <li>Changed putchar() prototype from void putchar(char) to int putchar(int) to improve standard-compliance and allow error reporting.</li>
+              <li>Various speed improvements in stm8 backend - Dhrystone score more than doubled, resulting in SDCC achieving the highest Dhrystone scores among STM8 C implementations.</li>
+              <li>Various speed improvements for multiplications resulting in SDCC achieving the highest Coremark scores among STM8 C implementations.</li>
+              <li>Declarations in for loops (ISO C99).</li>
+              <li>64-bit integers (long long) for the mcs51 and ds390 backends (now long long is fully supported in SDCC except for the pic14 and pic16 backends).</li>
+              <li>Full _Bool support for mcs51 and ds390 backend (now _Bool is fully supported in SDCC regardless of backend).</li>
+              <li>Additional wide character library functions: mbstowcs() and wcstombs(), btowc() and wctob(), wcscmp(), wcslen().</li>
+              <li>Changed PRNG for rand() from LCG to xorshift to improve speed and quality.</li>
+              <li>Support for Small-C calling convention on the callee side (i.e. function definitions with Small-C calling convention).</li>
+              <li>The obsolete macro SDCC (which used to contain the version number encoded as an integer) has finally been removed (except for mcs51, where it will survive a little bit longer for SiLabs IDE compability).</li>
+              <li>New devices supported by simulator (TLCS-90, and the 517, F380, XC88X, DS320 mcs51-variants along with dual-dptr and MDU support).</li>
+              <li>Timer, UART (incl. interrupt) and I/O support in STM8 simulator.</li>
+              <li>Simulator support for banked memory and bit banding.</li>
+              <li>Various simulator improvements: Conditional breakpoints, breakpoints by function name from SDCC debug output, OMF input, VCD output, simulator interface for simulated program and new operators in expressions.</li>
+              <li>Deprecated --nojtbound and the corresponding pragma.</li>
+              <li>Faster register allocator reduces compilation time by about 25% (does not apply to mcs51, ds390 which use a different register allocator).</li>
+              <li>Execution count guessing and use of execution count guesses in stm8 register allocation improve optimization for code speed.</li>
+              <li>Changed getchar() prototype from char getchar(void) to int getchar(void) to improve standard-compliance and allow error reporting.</li>
+              <li>Type qualifiers in array parameters (ISO C99).</li>
+              <li>static in array parameters (ISO C99).</li>
+              <li>Improved support for DWARFv2 debug info in ELF output (stm8, hc08, s08).</li>
+              <li>Various improvements in z80/z180/gbz80/tlcs90/r2k/r3ka code generation, in particular for mixed 16-/32-bit code.</li>
+              <li>__z88dk_fastcall function pointer support for --reserve-regs-iy.</li>
+              <li>tlcs90 is now a fully supported backend, no longer work in progress.</li>
+              <li>--data-seg to specify the segment for non-initialized data in the z80, z180, gbz80, tlcs90, r2k and r3ka backends.</li>
+              <li>New methods to obtain tree-decompositions of control-flow graphs improve compilation time / code-quality trade-off (when SDCC is built with support for the treedec library).</li>
+              <li>Additional general utility functions: qsort(), strtol(), strtoul().</li>
+            </ul>
+            <p>Numerous other new features and bug fixes are included as well.</p>
+            <p>You can download the release from:<br />
+              <a href="https://sourceforge.net/projects/sdcc/files/" target="_new">https://sourceforge.net/projects/sdcc/files/</a></p>
+
 
             <!-- END PAST_NEWS -->
 

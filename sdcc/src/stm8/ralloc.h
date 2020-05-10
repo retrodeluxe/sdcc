@@ -38,7 +38,9 @@ enum
   C_IDX,     // Carry bit - for bool only.
 
   X_IDX,     // X - for use with code generation support functions only.
-  Y_IDX      // Y - for use with code generation support functions only.
+  Y_IDX,     // Y - for use with code generation support functions only.
+
+  SP_IDX     // SP - for use with debug info.
 };
 
 enum
@@ -60,7 +62,9 @@ extern reg_info stm8_regs[];
 
 void stm8_assignRegisters (ebbIndex *);
 
+void stm8SpillThis (symbol *sym, bool force_spill);
 iCode *stm8_ralloc2_cc(ebbIndex *ebbi);
 
+void stm8RegFix (eBBlock ** ebbs, int count);
 #endif
 

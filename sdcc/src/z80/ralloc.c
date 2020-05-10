@@ -74,6 +74,8 @@ enum
   D_PACK_HLUSE3 = 0
 };
 
+// #define D_ALLOC 1
+
 #if 1
 #define D(_a, _s)       if (_a)  { printf _s; fflush(stdout); }
 #else
@@ -83,7 +85,7 @@ enum
 #define DISABLE_PACKREGSFORSUPPORT      1
 #define DISABLE_PACKREGSFORACCUSE       1
 
-// Build the old allocator. It can be used by command-line options
+// Build the old register allocator. It can be used by command-line options
 #define OLDRALLOC 1
 
 extern void genZ80Code (iCode *);
@@ -105,6 +107,7 @@ static struct
 } _G;
 
 static reg_info _gbz80_regs[] = {
+  {REG_GPR, A_IDX, "a", 1},
   {REG_GPR, C_IDX, "c", 1},
   {REG_GPR, B_IDX, "b", 1},
   {REG_GPR, E_IDX, "e", 1},
@@ -115,6 +118,7 @@ static reg_info _gbz80_regs[] = {
 };
 
 static reg_info _z80_regs[] = {
+  {REG_GPR, A_IDX, "a", 1},
   {REG_GPR, C_IDX, "c", 1},
   {REG_GPR, B_IDX, "b", 1},
   {REG_GPR, E_IDX, "e", 1},
@@ -130,7 +134,7 @@ reg_info *regsZ80;
 #define Z80_MAX_REGS ((sizeof(_z80_regs)/sizeof(_z80_regs[0]))-1)
 #define GBZ80_MAX_REGS ((sizeof(_gbz80_regs)/sizeof(_gbz80_regs[0]))-1)
 
-void spillThis (symbol *);
+void z80SpillThis (symbol *);
 static void freeAllRegs ();
 
 #ifdef OLDRALLOC
@@ -145,7 +149,7 @@ allocReg (short type)
 {
   int i;
 
-  for (i = 0; i < _G.nRegs; i++)
+  for (i = C_IDX; i < _G.nRegs; i++)
     {
       /* For now we allocate from any free */
       if (regsZ80[i].isFree)
@@ -171,7 +175,7 @@ regWithIdx (int idx)
 {
   int i;
 
-  for (i = 0; i < _G.nRegs; i++)
+  for (i = C_IDX; i < _G.nRegs; i++)
     {
       if (regsZ80[i].rIdx == idx)
         {
@@ -202,7 +206,7 @@ nFreeRegs (int type)
   int i;
   int nfr = 0;
 
-  for (i = 0; i < _G.nRegs; i++)
+  for (i = C_IDX; i < _G.nRegs; i++)
     {
       /* For now only one reg type */
       if (regsZ80[i].isFree)
@@ -440,16 +444,16 @@ DEFSETFUNC (isFree)
 /* createStackSpil - create a location on the stack to spil        */
 /*-----------------------------------------------------------------*/
 static symbol *
-createStackSpil (symbol * sym)
+createStackSpil (symbol *sym)
 {
   symbol *sloc = NULL;
   struct dbuf_s dbuf;
 
-  D (D_ALLOC, ("createStackSpil: for sym %p\n", sym));
+  D (D_ALLOC, ("createStackSpil: for sym %p (%s)\n", sym, sym->name));
 
   /* first go try and find a free one that is already
      existing on the stack */
-  if (applyToSet (_G.stackSpil, isFree, &sloc, sym))
+  if (applyToSet (_G.stackSpil, isFree, &sloc, sym) && USE_OLDSALLOC)
     {
       /* found a free one : just update & return */
       sym->usl.spillLoc = sloc;
@@ -504,7 +508,7 @@ createStackSpil (symbol * sym)
      of the spill location */
   addSetHead (&sloc->usl.itmpStack, sym);
 
-  D (D_ALLOC, ("createStackSpil: created new\n"));
+  D (D_ALLOC, ("createStackSpil: created new %s for %s\n", sloc->name, sym->name));
   return sym;
 }
 
@@ -512,21 +516,19 @@ createStackSpil (symbol * sym)
 /* spillThis - spils a specific operand                            */
 /*-----------------------------------------------------------------*/
 void
-spillThis (symbol * sym)
+z80SpillThis (symbol * sym)
 {
   int i;
 
-  D (D_ALLOC, ("spillThis: spilling %p\n", sym));
-
-  sym->for_newralloc = 0;
+  D (D_ALLOC, ("z80SpillThis: spilling %p (%s)\n", sym, sym->name));
 
   /* if this is rematerializable or has a spillLocation
      we are okay, else we need to create a spillLocation
      for it */
   if (!(sym->remat || sym->usl.spillLoc) || (sym->usl.spillLoc && !sym->usl.spillLoc->onStack)) // z80 port currently only supports on-stack spill locations in code generation.
-    {
-      createStackSpil (sym);
-    }
+    createStackSpil (sym);
+  else
+    D (D_ALLOC, ("Already has spilllocation %p, %s\n", sym->usl.spillLoc, sym->usl.spillLoc->name));
 
   /* mark it as spilt & put it in the spilt set */
   sym->isspilt = sym->spillA = 1;
@@ -655,8 +657,8 @@ selectSpil (iCode * ic, eBBlock * ebp, symbol * forSym)
 
   /* this is an extreme situation we will spill
      this one : happens very rarely but it does happen */
-  D (D_ALLOC, ("selectSpil: using spillThis.\n"));
-  spillThis (forSym);
+  D (D_ALLOC, ("selectSpil: using z80SpillThis.\n"));
+  z80SpillThis (forSym);
   return forSym;
 
 }
@@ -1005,7 +1007,7 @@ tryAllocatingRegPair (symbol * sym)
 {
   int i;
   wassert (sym->nRegs == 2);
-  for (i = 0; i < _G.nRegs; i += 2)
+  for (i = C_IDX; i < _G.nRegs; i += 2)
     {
       if ((regsZ80[i].isFree) && (regsZ80[i + 1].isFree))
         {
@@ -1035,7 +1037,7 @@ tryAllocatingRegPair (symbol * sym)
 /* the operand in a valid state.                                    */
 /*------------------------------------------------------------------*/
 static void
-verifyRegsAssigned (operand * op, iCode * ic)
+verifyRegsAssigned (operand *op, iCode *ic)
 {
   symbol *sym;
 
@@ -1052,10 +1054,10 @@ verifyRegsAssigned (operand * op, iCode * ic)
   if (sym->regs[0])
     return;
 
-  // Don't warn for new allocator, since this is not used by default (until Thoruop is implemented for spillocation compaction).
+  // Don't warn for new allocator, since this is now used by default.
   if (options.oldralloc)
     werrorfl (ic->filename, ic->lineno, W_LOCAL_NOINIT, sym->prereqv ? sym->prereqv->name : sym->name);
-  spillThis (sym);
+  z80SpillThis (sym);
 }
 
 #ifdef OLDRALLOC
@@ -1112,7 +1114,7 @@ serialRegAssign (eBBlock ** ebbs, int count)
               int willCS;
               int j;
 
-              D (D_ALLOC, ("serialRegAssign: in loop on result %p\n", sym));
+              D (D_ALLOC, ("serialRegAssign: in loop on result %p %s\n", sym, sym->name));
 
               /* Make sure any spill location is definately allocated */
               if (sym->isspilt && !sym->remat && sym->usl.spillLoc && !sym->usl.spillLoc->allocreq)
@@ -1135,7 +1137,7 @@ serialRegAssign (eBBlock ** ebbs, int count)
               if (_G.blockSpil && sym->liveTo > ebbs[i]->lSeq)
                 {
                   D (D_ALLOC, ("serialRegAssign: \"spilling to be safe.\"\n"));
-                  spillThis (sym);
+                  z80SpillThis (sym);
                   continue;
                 }
               /* if trying to allocate this will cause
@@ -1148,7 +1150,7 @@ serialRegAssign (eBBlock ** ebbs, int count)
                 {
 
                   D (D_ALLOC, ("serialRegAssign: \"remat spill\"\n"));
-                  spillThis (sym);
+                  z80SpillThis (sym);
                   continue;
 
                 }
@@ -1160,7 +1162,7 @@ serialRegAssign (eBBlock ** ebbs, int count)
                  symbol instead and let fillGaps handle the allocation. */
               if (sym->liveFrom < ic->seq)
                 {
-                  spillThis (sym);
+                  z80SpillThis (sym);
                   continue;
                 }
 
@@ -1174,7 +1176,7 @@ serialRegAssign (eBBlock ** ebbs, int count)
                                                                        allLRs, ebbs[i], ic));
                       if (leastUsed && leastUsed->used > sym->used)
                         {
-                          spillThis (sym);
+                          z80SpillThis (sym);
                           continue;
                         }
                     }
@@ -1187,7 +1189,7 @@ serialRegAssign (eBBlock ** ebbs, int count)
                           /* if this is local to this block then we might find a block spil */
                           if (!(sym->liveFrom >= ebbs[i]->fSeq && sym->liveTo <= ebbs[i]->lSeq))
                             {
-                              spillThis (sym);
+                              z80SpillThis (sym);
                               continue;
                             }
                         }
@@ -1434,7 +1436,7 @@ rUmaskForOp (const operand * op)
 
   for (j = 0; j < sym->nRegs; j++)
     {
-      if (!(sym->regs[j]) || sym->regs[j]->rIdx < C_IDX || sym->regs[j]->rIdx > CND_IDX)
+      if (!(sym->regs[j]) || sym->regs[j]->rIdx < 0 || sym->regs[j]->rIdx > CND_IDX)
         {
           werror (E_INTERNAL_ERROR, __FILE__, __LINE__, "rUmaskForOp: Register not found");
           exit (0);
@@ -1623,6 +1625,12 @@ regTypeNum (void)
       /* if used zero times then no registers needed */
       if ((sym->liveTo - sym->liveFrom) == 0 && getSize (sym->type) <= 4)
         continue;
+      else if ((sym->liveTo - sym->liveFrom) == 0 && bitVectnBitsOn (sym->defs) <= 1)
+        {
+          iCode *dic = hTabItemWithKey (iCodehTab, bitVectFirstBit (sym->defs));
+          if (!dic || dic->op != CALL && dic->op != PCALL)
+            continue;
+        }
 
       D (D_ALLOC, ("regTypeNum: loop on sym %p\n", sym));
 
@@ -1654,7 +1662,7 @@ regTypeNum (void)
 
           if (sym->nRegs > 8)
             {
-              fprintf (stderr, "allocated more than 8 egisters for type ");
+              fprintf (stderr, "allocated more than 8 registers for type ");
               printTypeChain (sym->type, stderr);
               fprintf (stderr, "\n");
             }
@@ -1683,13 +1691,14 @@ freeAllRegs ()
 
   D (D_ALLOC, ("freeAllRegs: running.\n"));
 
-  for (i = 0; i < _G.nRegs; i++)
+  for (i = C_IDX; i < _G.nRegs; i++)
     regsZ80[i].isFree = 1;
 }
 
 /*-----------------------------------------------------------------*/
 /* deallocStackSpil - this will set the stack pointer back         */
 /*-----------------------------------------------------------------*/
+static
 DEFSETFUNC (deallocStackSpil)
 {
   symbol *sym = item;
@@ -2015,7 +2024,7 @@ packRegsForOneuse (iCode * ic, operand * op, eBBlock * ebp)
   if (bitVectnBitsOn (OP_DEFS (op)) > 1)
     return NULL;                /* has more than one definition */
 
-  /* get the that definition */
+  /* get that definition */
   if (!(dic = hTabItemWithKey (iCodehTab, bitVectFirstBit (OP_DEFS (op)))))
     return NULL;
 
@@ -2683,14 +2692,14 @@ packRegisters (eBBlock * ebp)
 
   for (ic = ebp->sch; ic; ic = ic->next)
     {
+      D (D_ALLOC, ("packRegisters: looping on ic %p\n", ic));
+
       /* Safe: address of a true sym is always constant. */
       /* if this is an itemp & result of a address of a true sym
          then mark this as rematerialisable   */
-      D (D_ALLOC, ("packRegisters: looping on ic %p\n", ic));
-
       if (ic->op == ADDRESS_OF &&
-          IS_ITEMP (IC_RESULT (ic)) &&
-          IS_TRUE_SYMOP (IC_LEFT (ic)) && bitVectnBitsOn (OP_DEFS (IC_RESULT (ic))) == 1 && !OP_SYMBOL (IC_LEFT (ic))->onStack)
+          IS_ITEMP (IC_RESULT (ic)) && bitVectnBitsOn (OP_DEFS (IC_RESULT (ic))) == 1 && !IS_PARM (IC_RESULT (ic)) /* The receiving of the paramter isnot accounted for in DEFS */ &&
+          IS_TRUE_SYMOP (IC_LEFT (ic)) && !OP_SYMBOL (IC_LEFT (ic))->onStack)
         {
           OP_SYMBOL (IC_RESULT (ic))->remat = 1;
           OP_SYMBOL (IC_RESULT (ic))->rematiCode = ic;
@@ -2700,8 +2709,8 @@ packRegisters (eBBlock * ebp)
       /* Safe: just propagates the remat flag */
       /* if straight assignment then carry remat flag if this is the
          only definition */
-      if (ic->op == '=' && !POINTER_SET (ic) && IS_SYMOP (IC_RIGHT (ic)) && OP_SYMBOL (IC_RIGHT (ic))->remat && !IS_CAST_ICODE (OP_SYMBOL (IC_RIGHT (ic))->rematiCode) && !isOperandGlobal (IC_RESULT (ic)) &&  /* due to bug 1618050 */
-          bitVectnBitsOn (OP_SYMBOL (IC_RESULT (ic))->defs) <= 1)
+      if (ic->op == '=' && !POINTER_SET (ic) && IS_SYMOP (IC_RIGHT (ic)) && OP_SYMBOL (IC_RIGHT (ic))->remat &&
+        !isOperandGlobal (IC_RESULT (ic)) && bitVectnBitsOn (OP_SYMBOL (IC_RESULT (ic))->defs) == 1 && !IS_PARM (IC_RESULT (ic)) /* The receiving of the paramter isnot accounted for in DEFS */)
         {
           OP_SYMBOL (IC_RESULT (ic))->remat = OP_SYMBOL (IC_RIGHT (ic))->remat;
           OP_SYMBOL (IC_RESULT (ic))->rematiCode = OP_SYMBOL (IC_RIGHT (ic))->rematiCode;
@@ -2710,7 +2719,8 @@ packRegisters (eBBlock * ebp)
       /* if cast to a generic pointer & the pointer being
          cast is remat, then we can remat this cast as well */
       if (ic->op == CAST &&
-          IS_SYMOP (IC_RIGHT (ic)) && OP_SYMBOL (IC_RIGHT (ic))->remat && bitVectnBitsOn (OP_DEFS (IC_RESULT (ic))) == 1)
+          IS_SYMOP (IC_RIGHT (ic)) && OP_SYMBOL (IC_RIGHT (ic))->remat &&
+          !isOperandGlobal (IC_RESULT (ic)) && bitVectnBitsOn (OP_DEFS (IC_RESULT (ic))) == 1 && !IS_PARM (IC_RESULT (ic)) /* The receiving of the paramter isnot accounted for in DEFS */)
         {
           sym_link *to_type = operandType (IC_LEFT (ic));
           sym_link *from_type = operandType (IC_RIGHT (ic));
@@ -2806,7 +2816,7 @@ packRegisters (eBBlock * ebp)
 static iCode *
 joinPushes (iCode * lic)
 {
-  iCode *ic, *uic;
+  iCode *ic, *uic, *fic;
 
   for (ic = lic; ic; ic = ic->next)
     {
@@ -2818,19 +2828,27 @@ joinPushes (iCode * lic)
 
       /* Anything past this? */
       if (uic == NULL)
-        {
-          continue;
-        }
+        continue;
+
       /* This and the next pushes? */
       if (ic->op != IPUSH || uic->op != IPUSH)
-        {
+        continue;
+
+      /* Find call */
+      for(fic = uic; fic->op == IPUSH; fic = fic->next);
+      if (ic->op != CALL && fic->op != PCALL)
+        continue;
+      {
+        sym_link *dtype = operandType (IC_LEFT (fic));
+        sym_link *ftype = IS_FUNCPTR (dtype) ? dtype->next : dtype;
+        if (IFFUNC_ISSMALLC (ftype)) /* SmallC calling convention pushes 8-bit values as 16 bit */
           continue;
-        }
+      }
+
       /* Both literals? */
       if (!IS_OP_LITERAL (IC_LEFT (ic)) || !IS_OP_LITERAL (IC_LEFT (uic)))
-        {
-          continue;
-        }
+        continue;
+
       /* Both characters? */
       if (getSize (operandType (IC_LEFT (ic))) != 1 || getSize (operandType (IC_LEFT (uic))) != 1)
         {
@@ -2846,8 +2864,7 @@ joinPushes (iCode * lic)
       val = constVal (dbuf_c_str (&dbuf));
       dbuf_destroy (&dbuf);
       SPEC_NOUN (val->type) = V_INT;
-      IC_LEFT (ic) = operandFromOperand (IC_LEFT (ic));
-      OP_VALUE (IC_LEFT (ic)) = val;
+      IC_LEFT (ic) = operandFromValue (val);
 
       /* Now remove the second one from the list. */
       ic->next = uic->next;
@@ -2913,7 +2930,7 @@ serialRegMark (eBBlock ** ebbs, int count)
             {
               symbol *sym = OP_SYMBOL (IC_RESULT (ic));
 
-              D (D_ALLOC, ("serialRegAssign: in loop on result %p\n", sym));
+              D (D_ALLOC, ("serialRegAssign: in loop on result %p (%s)\n", sym, sym->name));
 
               /* Make sure any spill location is definately allocated */
               if (sym->isspilt && !sym->remat && sym->usl.spillLoc && !sym->usl.spillLoc->allocreq)
@@ -2925,7 +2942,7 @@ serialRegMark (eBBlock ** ebbs, int count)
                  or is already assigned to registers (or marked for the new allocator)
                  or will not live beyond this instructions */
               if (!sym->nRegs ||
-                  sym->isspilt || bitVectBitValue (_G.regAssigned, sym->key) || sym->for_newralloc || (sym->liveTo <= ic->seq && (sym->nRegs <= 4 || ic->op != CALL)))
+                  sym->isspilt || bitVectBitValue (_G.regAssigned, sym->key) || sym->for_newralloc || (sym->liveTo <= ic->seq && (sym->nRegs <= 4 || ic->op != CALL && ic->op != PCALL)))
                 {
                   D (D_ALLOC, ("serialRegAssign: won't live long enough.\n"));
                   continue;
@@ -2937,13 +2954,22 @@ serialRegMark (eBBlock ** ebbs, int count)
               if (_G.blockSpil && sym->liveTo > ebbs[i]->lSeq)
                 {
                   D (D_ALLOC, ("serialRegAssign: \"spilling to be safe.\"\n"));
-                  spillThis (sym);
+                  sym->for_newralloc = 0;
+                  z80SpillThis (sym);
                   continue;
+                }
+
+              if (sym->usl.spillLoc && !sym->usl.spillLoc->_isparm && !USE_OLDSALLOC) // I have no idea where these spill locations come from. Sometime two symbols even have the same spill location, whic tends to mess up stack allocation. THose that come from previous iterations in this loop would be okay, but those from outside are a problem.
+                {
+                  sym->usl.spillLoc = 0;
+                  sym->isspilt = false;
                 }
 
               if (sym->nRegs > 4) /* TODO. Change this once we can allocate bigger variables (but still spill when its a big return value). */
                 {
-                  spillThis (sym);
+                  D (D_ALLOC, ("Spilling %s (too large)\n", sym->name));
+                  sym->for_newralloc = 0;
+                  z80SpillThis (sym);
                 }
               else if (max_alloc_bytes >= sym->nRegs)
                 {
@@ -2952,7 +2978,7 @@ serialRegMark (eBBlock ** ebbs, int count)
                 }
               else if (!sym->for_newralloc)
                 {
-                  spillThis (sym);
+                  z80SpillThis (sym);
                   printf ("Spilt %s due to byte limit.\n", sym->name);
                 }
             }
@@ -2960,8 +2986,8 @@ serialRegMark (eBBlock ** ebbs, int count)
     }
 }
 
-static void
-RegFix (eBBlock ** ebbs, int count)
+void
+Z80RegFix (eBBlock ** ebbs, int count)
 {
   int i;
 
@@ -3013,7 +3039,7 @@ z80_oldralloc (ebbIndex * ebbi)
   iCode *ic;
   int i;
 
-  D (D_ALLOC, ("\n-> z80_assignRegisters: entered.\n"));
+  D (D_ALLOC, ("\n-> z80_oldralloc: entered for %s.\n", currFunc ? currFunc->name : "[no function]"));
 
   setToNull ((void *) &_G.funcrUsed);
   setToNull ((void *) &_G.totRegAssigned);
@@ -3022,12 +3048,12 @@ z80_oldralloc (ebbIndex * ebbi)
   if (IS_GB)
     {
       /* DE is required for the code gen. */
-      _G.nRegs = 2;
+      _G.nRegs = 3;
       regsZ80 = _gbz80_regs;
     }
   else
     {
-      _G.nRegs = 4;
+      _G.nRegs = 5;
       regsZ80 = _z80_regs;
     }
     
@@ -3106,14 +3132,14 @@ z80_oldralloc (ebbIndex * ebbi)
 /* New register allocator                                          */
 /*-----------------------------------------------------------------*/
 void
-z80_ralloc (ebbIndex * ebbi)
+z80_ralloc (ebbIndex *ebbi)
 {
   eBBlock **ebbs = ebbi->bbOrder;
   int count = ebbi->count;
   iCode *ic;
   int i;
 
-  D (D_ALLOC, ("\n-> z80_assignRegisters: entered.\n"));
+  D (D_ALLOC, ("\n-> z80_ralloc: entered for %s.\n", currFunc ? currFunc->name : "[no function]"));
 
   setToNull ((void *) &_G.funcrUsed);
   setToNull ((void *) &_G.totRegAssigned);
@@ -3152,36 +3178,16 @@ z80_ralloc (ebbIndex * ebbi)
   /* Mark variables for assignment by the new allocator */
   serialRegMark (ebbs, count);
 
+  joinPushes (iCodeLabelOptimize(iCodeFromeBBlock (ebbs, count)));
+
   /* The new register allocator invokes its magic */
   ic = z80_ralloc2_cc (ebbi);
-
-  RegFix (ebbs, count);
-
-  /* if stack was extended then tell the user */
-  if (_G.stackExtend)
-    {
-/*      werror(W_TOOMANY_SPILS,"stack", */
-/*             _G.stackExtend,currFunc->name,""); */
-      _G.stackExtend = 0;
-    }
-
-  if (_G.dataExtend)
-    {
-/*      werror(W_TOOMANY_SPILS,"data space", */
-/*             _G.dataExtend,currFunc->name,""); */
-      _G.dataExtend = 0;
-    }
 
   if (options.dump_i_code)
     {
       dumpEbbsToFileExt (DUMP_RASSGN, ebbi);
       dumpLiveRanges (DUMP_LRANGE, liveRanges);
     }
-
-  ic = joinPushes (ic);
-
-  /* redo that offsets for stacked automatic variables */
-  redoStackOffsets ();
 
   genZ80Code (ic);
 

@@ -133,6 +133,8 @@ public:
   virtual void set(t_addr addr, t_mem val)=0;
   virtual void set_bit1(t_addr addr, t_mem bits)=0;
   virtual void set_bit0(t_addr addr, t_mem bits)=0;
+
+  virtual void print_info(chars pre, class cl_console_base *con);
 };
 
 
@@ -145,12 +147,12 @@ class cl_banker;
 class cl_memory_operator: public cl_base
 {
 protected:
-  t_addr address;
+  //t_addr address;
   t_mem mask;
   class cl_memory_operator *next_operator;
   class cl_memory_cell *cell;
 public:
-  cl_memory_operator(class cl_memory_cell *acell, t_addr addr);
+  cl_memory_operator(class cl_memory_cell *acell/*, t_addr addr*/);
 
   virtual class cl_memory_operator *get_next(void) { return(next_operator); }
   virtual void set_next(class cl_memory_operator *next) { next_operator= next;}
@@ -170,7 +172,7 @@ class cl_bank_switcher_operator: public cl_memory_operator
  protected:
   class cl_banker *banker;
  public:
-  cl_bank_switcher_operator(class cl_memory_cell *acell, t_addr addr,
+  cl_bank_switcher_operator(class cl_memory_cell *acell/*, t_addr addr*/,
 			    class cl_banker *the_banker);
   
   virtual t_mem write(t_mem val);
@@ -182,7 +184,7 @@ class cl_hw_operator: public cl_memory_operator
 protected:
   class cl_hw *hw;
 public:
-  cl_hw_operator(class cl_memory_cell *acell, t_addr addr,
+  cl_hw_operator(class cl_memory_cell *acell/*, t_addr addr*/,
 		 /*t_mem *data_place, t_mem the_mask,*/ class cl_hw *ahw);
 
   virtual bool match(class cl_hw *the_hw) { return(hw == the_hw); }
@@ -198,9 +200,9 @@ protected:
   class cl_uc *uc;
   class cl_brk *bp;
 public:
-  cl_event_break_operator(class cl_memory_cell *acell, t_addr addr,
+ cl_event_break_operator(class cl_memory_cell *acell/*, t_addr addr*/,
 			  class cl_uc *auc, class cl_brk *the_bp):
-  cl_memory_operator(acell, addr)
+  cl_memory_operator(acell/*, addr*/)
   {
     uc= auc;
     bp= the_bp;
@@ -212,7 +214,7 @@ public:
 class cl_write_operator: public cl_event_break_operator
 {
 public:
-  cl_write_operator(class cl_memory_cell *acell, t_addr addr,
+  cl_write_operator(class cl_memory_cell *acell/*, t_addr addr*/,
 		    class cl_uc *auc, class cl_brk *the_bp);
 
   virtual t_mem write(t_mem val);
@@ -221,7 +223,7 @@ public:
 class cl_read_operator: public cl_event_break_operator
 {
 public:
-  cl_read_operator(class cl_memory_cell *acell, t_addr addr,
+  cl_read_operator(class cl_memory_cell *acell/*, t_addr addr*/,
 		   class cl_uc *auc, class cl_brk *the_bp);
 
   virtual t_mem read(void);
@@ -266,7 +268,8 @@ class cl_memory_cell: public cl_cell_data
   virtual bool get_flag(enum cell_flag flag);
   virtual void set_flags(/*TYPE_UBYTE*/uchar what);
   virtual void set_flag(enum cell_flag flag, bool val);
-
+  virtual uchar get_width(void) { return width; }
+  
   virtual void un_decode(void);
   virtual void decode(class cl_memory_chip *chip, t_addr addr);
   virtual void decode(t_mem *data_ptr);
@@ -283,8 +286,11 @@ class cl_memory_cell: public cl_cell_data
   virtual t_mem wadd(long what);
 
   virtual void set_bit1(t_mem bits);
+  virtual void write_bit1(t_mem bits);
   virtual void set_bit0(t_mem bits);
+  virtual void write_bit0(t_mem bits);
   virtual void toggle_bits(t_mem bits);
+  virtual void wtoggle_bits(t_mem bits);
   
   virtual void append_operator(class cl_memory_operator *op);
   virtual void prepend_operator(class cl_memory_operator *op);
@@ -292,11 +298,12 @@ class cl_memory_cell: public cl_cell_data
   virtual void del_operator(class cl_hw *hw);
   virtual class cl_banker *get_banker(void);
   
-  virtual class cl_memory_cell *add_hw(class cl_hw *hw, t_addr addr);
+  virtual class cl_memory_cell *add_hw(class cl_hw *hw/*, t_addr addr*/);
   virtual void remove_hw(class cl_hw *hw);
   virtual class cl_event_handler *get_event_handler(void);
 
-  virtual void print_operators(class cl_console_base *con);
+  virtual void print_info(chars pre, class cl_console_base *con);
+  virtual void print_operators(cchars pre, class cl_console_base *con);
 };
 
 class cl_bit_cell: public cl_memory_cell
@@ -410,6 +417,8 @@ class cl_address_space: public cl_memory
   virtual void set_nuof_reads(unsigned long value) {}
   virtual void set_nuof_writes(unsigned long value) {}
 #endif
+
+  virtual void print_info(chars pre, class cl_console_base *con);
 };
 
 class cl_address_space_list: public cl_list
@@ -450,6 +459,8 @@ public:
   virtual void set(t_addr addr, t_mem val);
   virtual void set_bit1(t_addr addr, t_mem bits);
   virtual void set_bit0(t_addr addr, t_mem bits);
+
+  virtual void print_info(chars pre, class cl_console_base *con);
 };
 
   
@@ -493,17 +504,31 @@ public:
 class cl_banker: public cl_address_decoder
 {
  protected:
-  class cl_address_space *banker_as;
-  t_addr banker_addr;
-  t_mem banker_mask;
+  class cl_address_space *banker_as, *banker2_as;
+  t_addr banker_addr, banker2_addr;
+  t_mem banker_mask, banker2_mask;
+  //int banker_shift;
+  int banker2_shift;
   int nuof_banks;
   int bank;
   class cl_address_decoder **banks;
-  int shift_by;
+  int shift_by, shift2_by;
  public:
   cl_banker(class cl_address_space *the_banker_as,
 	    t_addr the_banker_addr,
 	    t_mem the_banker_mask,
+	    //int the_banker_shift,
+	    class cl_address_space *the_as,
+	    t_addr the_asb,
+	    t_addr the_ase);
+  cl_banker(class cl_address_space *the_banker_as,
+	    t_addr the_banker_addr,
+	    t_mem the_banker_mask,
+	    //int the_banker_shift,
+	    class cl_address_space *the_banker2_as,
+	    t_addr the_banker2_addr,
+	    t_mem the_banker2_mask,
+	    int the_banker2_shift,
 	    class cl_address_space *the_as,
 	    t_addr the_asb,
 	    t_addr the_ase);

@@ -79,8 +79,9 @@ cl_memory::~cl_memory(void)
 int
 cl_memory::init(void)
 {
-  addr_format= (char *)malloc(10);
-  sprintf(addr_format, "0x%%0%d",
+  chars c= chars("",
+		 //addr_format= (char *)malloc(10);
+		 /*sprintf(addr_format,*/ "0x%%0%d",
 	  size-1<=0xf?1:
 	  (size-1<=0xff?2:
 	   (size-1<=0xfff?3:
@@ -88,17 +89,20 @@ cl_memory::init(void)
 	     (size-1<=0xfffff?5:
 	      (size-1<=0xffffff?6:12))))));
   if (sizeof(t_addr) > sizeof(long))
-    strcat(addr_format, "L");
+    c+= cchars("L");//strcat(addr_format, "L");
   else if (sizeof(t_addr) > sizeof(int))
-    strcat(addr_format, "l");
-  strcat(addr_format, "x");
-  data_format= (char *)malloc(10);
-  sprintf(data_format, "%%0%d", width/4+((width%4)?1:0));
+    c+= cchars("l");//strcat(addr_format, "l");
+  c+= cchars("x");//strcat(addr_format, "x");
+  addr_format= strdup((char*)c);
+  //data_format= (char *)malloc(10);
+  c= cchars("");
+  /*sprintf(data_*/c.format(/*"0x"*/"%%0%d", width/4+((width%4)?1:0));
   if (sizeof(t_mem) > sizeof(long))
-    strcat(data_format, "L");
+    c+= cchars("L");//strcat(data_format, "L");
   else if (sizeof(t_mem) > sizeof(int))
-    strcat(data_format, "l");
-  strcat(data_format, "x");
+    c+= cchars("l");//strcat(data_format, "l");
+  c+= cchars("x");//strcat(data_format, "x");
+  data_format= strdup((char*)c);
   data_mask= 1;
   int w= width;
   for (--w; w; w--)
@@ -454,13 +458,28 @@ cl_memory::search_next(bool case_sensitive,
   return(found);
 }
 
+void
+cl_memory::print_info(chars pre, class cl_console_base *con)
+{
+  char *n= (char*)(get_name());
+  if (!hidden)
+    {
+      con->dd_printf("%s0x%06x-0x%06x %8d %s (%d,%s,%s)\n", (char*)pre,
+		     (unsigned int)(get_start_address()),
+		     (unsigned int)(highest_valid_address()),
+		     (unsigned int)(get_size()),
+		     n,
+		     width, data_format, addr_format);
+    }
+}
+
 
 /*
  *                                                             Memory operators
  */
 
-cl_memory_operator::cl_memory_operator(class cl_memory_cell *acell,
-				       t_addr addr):
+cl_memory_operator::cl_memory_operator(class cl_memory_cell *acell/*,
+								    t_addr addr*/):
   cl_base()
 {
   cell= acell;
@@ -475,7 +494,7 @@ cl_memory_operator::cl_memory_operator(class cl_memory_cell *acell,
       mask= ~0;
     }
   next_operator= 0;
-  address= addr;
+  //address= addr;
 }
 /*
 cl_memory_operator::cl_memory_operator(class cl_memory_cell *acell,
@@ -523,9 +542,9 @@ cl_memory_operator::write(t_mem val)
 /* Memory operator for bank switcher */
 
 cl_bank_switcher_operator::cl_bank_switcher_operator(class cl_memory_cell *acell,
-						     t_addr addr,
+						     /*t_addr addr,*/
 						     class cl_banker *the_banker):
-  cl_memory_operator(acell, addr)
+  cl_memory_operator(acell/*, addr*/)
 {
   banker= the_banker;
   set_name("bank_switcher");
@@ -546,13 +565,13 @@ cl_bank_switcher_operator::write(t_mem val)
 
 /* Memory operator for hw callbacks */
 
-cl_hw_operator::cl_hw_operator(class cl_memory_cell *acell, t_addr addr,
+cl_hw_operator::cl_hw_operator(class cl_memory_cell *acell/*, t_addr addr*/,
 			       //t_mem *data_place, t_mem the_mask,
 			       class cl_hw *ahw):
-  cl_memory_operator(acell, addr/*, data_place, the_mask*/)
+  cl_memory_operator(acell/*, addr*//*, data_place, the_mask*/)
 {
   hw= ahw;
-  set_name("hw");
+  set_name(chars("hw:")+hw->get_name());
 }
 
 
@@ -604,14 +623,14 @@ cl_hw_operator::write(t_mem val)
 
 /* Write event break on cell */
 
-cl_write_operator::cl_write_operator(class cl_memory_cell *acell, t_addr addr,
+cl_write_operator::cl_write_operator(class cl_memory_cell *acell/*, t_addr addr*/,
 				     //t_mem *data_place, t_mem the_mask,
 				     class cl_uc *auc, class cl_brk *the_bp):
-  cl_event_break_operator(acell, addr/*, data_place, the_mask*/, auc, the_bp)
+  cl_event_break_operator(acell/*, addr*//*, data_place, the_mask*/, auc, the_bp)
 {
   uc= auc;
   bp= the_bp;
-  set_name("write");
+  set_name("write_event");
 }
 
 t_mem
@@ -629,14 +648,14 @@ cl_write_operator::write(t_mem val)
 
 /* Read event break on cell */
 
-cl_read_operator::cl_read_operator(class cl_memory_cell *acell, t_addr addr,
+cl_read_operator::cl_read_operator(class cl_memory_cell *acell/*, t_addr addr*/,
 				   //t_mem *data_place, t_mem the_mask,
 				   class cl_uc *auc, class cl_brk *the_bp):
-  cl_event_break_operator(acell, addr/*, data_place, the_mask*/, auc, the_bp)
+  cl_event_break_operator(acell/*, addr*//*, data_place, the_mask*/, auc, the_bp)
 {
   uc= auc;
   bp= the_bp;
-  set_name("read");
+  set_name("read_event");
 }
 
 t_mem
@@ -993,6 +1012,13 @@ cl_memory_cell::set_bit1(t_mem bits)
 }
 
 void
+cl_memory_cell::write_bit1(t_mem bits)
+{
+  bits&= mask;
+  /*(*data)|=*//*d*/write(d()| bits);
+}
+
+void
 cl_memory_cell::set_bit0(t_mem bits)
 {
   bits&= mask;
@@ -1000,10 +1026,24 @@ cl_memory_cell::set_bit0(t_mem bits)
 }
 
 void
+cl_memory_cell::write_bit0(t_mem bits)
+{
+  bits&= mask;
+  /*(*data)&=*//*d*/write(d()& ~bits);
+}
+
+void
 cl_memory_cell::toggle_bits(t_mem bits)
 {
   bits&= mask;
   /*d*/set(d() ^ bits);
+}
+
+void
+cl_memory_cell::wtoggle_bits(t_mem bits)
+{
+  bits&= mask;
+  /*d*/write(d() ^ bits);
 }
 
 
@@ -1102,9 +1142,9 @@ cl_memory_cell::get_banker(void)
 }
 
 class cl_memory_cell *
-cl_memory_cell::add_hw(class cl_hw *hw, t_addr addr)
+cl_memory_cell::add_hw(class cl_hw *hw/*, t_addr addr*/)
 {
-  class cl_hw_operator *o= new cl_hw_operator(this, addr/*, data, mask*/, hw);
+  class cl_hw_operator *o= new cl_hw_operator(this/*, addr*//*, data, mask*/, hw);
   append_operator(o);
   return(this);
 }
@@ -1128,7 +1168,25 @@ cl_memory_cell::get_event_handler(void)
 }
 
 void
-cl_memory_cell::print_operators(class cl_console_base *con)
+cl_memory_cell::print_info(chars pre, class cl_console_base *con)
+{
+  con->dd_printf("%sFlags:", (char*)pre);
+  if (flags & CELL_VAR)
+    con->dd_printf(" VAR");
+  if (flags & CELL_INST)
+    con->dd_printf(" INST");
+  if (flags & CELL_FETCH_BRK)
+    con->dd_printf(" FBRK");
+  if (flags & CELL_READ_ONLY)
+    con->dd_printf(" RO");
+  if (flags & CELL_NON_DECODED)
+    con->dd_printf(" NDC");
+  con->dd_printf("\n");
+  print_operators(pre, con);
+}
+
+void
+cl_memory_cell::print_operators(chars pre, class cl_console_base *con)
 {
   class cl_memory_operator *o= operators;
   if (!operators)
@@ -1136,7 +1194,7 @@ cl_memory_cell::print_operators(class cl_console_base *con)
   int i= 0;
   while (o)
     {
-      printf(" %02d. %s\n", i, o->get_name("?"));
+      printf("%s %02d. %s\n", (char*)pre, i, o->get_name("?"));
       i++;
       o= o->get_next();
     }
@@ -1191,7 +1249,9 @@ cl_address_space::cl_address_space(const char *id,
   int i;
   for (i= 0; i < size; i++)
     {
-      memcpy(&(cella[i]), cell, sizeof(c));
+      void *p1= &(cella[i]);
+      void *p2= cell;
+      memcpy(p1, p2, sizeof(c));
       cella[i].init();
     }
   dummy= new cl_dummy_cell(awidth);
@@ -1476,7 +1536,8 @@ cl_address_space::undecode_area(class cl_address_decoder *skip,
 				class cl_console_base *con)
 {
 #define D if (con) con->debug
-  D("Undecoding area 0x%x-0x%x of %s\n", begin, end, get_name());
+  //#define D printf
+  D("Undecoding area 0x%lx-0x%lx of %s (skip=%s)\n", begin, end, get_name(), skip?(skip->get_name()):"-");
   int i;
   for (i= 0; i < decoders->count; i++)
     {
@@ -1485,8 +1546,8 @@ cl_address_space::undecode_area(class cl_address_decoder *skip,
       if (!d ||
 	  d == skip)
 	continue;
-      D("  Checking decoder 0x%x-0x%x -> %s[0x%x]\n",
-	d->as_begin, d->as_end, d->memchip->get_name(), d->chip_begin);
+      D("  Checking decoder 0x%lx-0x%lx -> %s[0x%lx]\n",
+	d->as_begin, d->as_end, (d->memchip)?(d->memchip->get_name()):"(none)", d->chip_begin);
       if (d->fully_covered_by(begin, end))
 	{
 	  // decoder can be removed
@@ -1503,13 +1564,13 @@ cl_address_space::undecode_area(class cl_address_decoder *skip,
 	  D("    Must be split\n");
 	  class cl_address_decoder *nd= d->split(begin, end);
 	  D("    After split:\n");
-	  D("      0x%x-0x%x -> %s[0x%x]\n",
-	    d->as_begin, d->as_end, d->memchip->get_name(), d->chip_begin);
+	  D("      0x%lx-0x%lx -> %s[0x%lx]\n",
+	    d->as_begin, d->as_end, (d->memchip)?(d->memchip->get_name()):"(none)", d->chip_begin);
 	  if (nd)
 	    {
 	      decoders->add(nd);
-	      D("      0x%x-0x%x -> %s[0x%x]\n",
-		nd->as_begin, nd->as_end, nd->memchip->get_name(), nd->chip_begin);
+	      D("      0x%lx-0x%lx -> %s[0x%lx]\n",
+		nd->as_begin, nd->as_end, (nd->memchip)?(nd->memchip->get_name()):"none", nd->chip_begin);
 	      nd->activate(con);
 	    }
 	}
@@ -1528,8 +1589,8 @@ cl_address_space::undecode_area(class cl_address_decoder *skip,
 	    }
 	  else
 	    {
-	      D("    Shrinked to 0x%x-0x%x -> %s[0x%x]\n",
-		d->as_begin, d->as_end, d->memchip->get_name(), d->chip_begin);
+	      D("    Shrinked to 0x%lx-0x%lx -> %s[0x%lx]\n",
+		d->as_begin, d->as_end, (d->memchip)?(d->memchip->get_name()):"(none)", d->chip_begin);
 	    }
 	}
     }
@@ -1546,7 +1607,7 @@ cl_address_space::register_hw(t_addr addr, class cl_hw *hw,
       addr < start_address)
     return(0);
   class cl_memory_cell *cell= &cella[idx];
-  cell->add_hw(hw, addr);
+  cell->add_hw(hw/*, addr*/);
   if (announce)
     ;//uc->sim->/*app->*/mem_cell_changed(this, addr);//FIXME
   return(cell);
@@ -1578,12 +1639,12 @@ cl_address_space::set_brk(t_addr addr, class cl_brk *brk)
     {
     case brkWRITE: case brkWXRAM: case brkWIRAM: case brkWSFR:
       //e= 'W';
-      op= new cl_write_operator(cell, addr, //cell->get_data(), cell->get_mask(),
+      op= new cl_write_operator(cell/*, addr*/, //cell->get_data(), cell->get_mask(),
 				uc, brk);
       break;
     case brkREAD: case brkRXRAM: case brkRCODE: case brkRIRAM: case brkRSFR:
       //e= 'R';
-      op= new cl_read_operator(cell, addr, //cell->get_data(), cell->get_mask(),
+      op= new cl_read_operator(cell/*, addr*/, //cell->get_data(), cell->get_mask(),
 			       uc, brk);
       break;
     case brkNONE:
@@ -1620,6 +1681,21 @@ cl_address_space::del_brk(t_addr addr, class cl_brk *brk)
       break;
     default:
       break;
+    }
+}
+
+void
+cl_address_space::print_info(chars pre, class cl_console_base *con)
+{
+  char *n= (char*)(get_name());
+  if (!hidden)
+    {
+      con->dd_printf("%s0x%06x-0x%06x %8d %s (%d,%s,%s)\n", (char*)pre,
+		     (unsigned int)(get_start_address()),
+		     (unsigned int)(highest_valid_address()),
+		     (unsigned int)(get_size()),
+		     n,
+		     width, data_format, addr_format);
     }
 }
 
@@ -1752,6 +1828,22 @@ cl_memory_chip::set_bit0(t_addr addr, t_mem bits)
   array[addr]&= ((~bits) & data_mask);
 }
 
+void
+cl_memory_chip::print_info(chars pre, class cl_console_base *con)
+{
+  char *n= (char*)(get_name());
+  if (!hidden)
+    {
+      //con->dd_printf(pre0);
+      con->dd_printf("%s0x%06x-0x%06x %8d %s (%d,%s,%s)\n", (char*)pre,
+		     (unsigned int)(get_start_address()),
+		     (unsigned int)(highest_valid_address()),
+		     (unsigned int)(get_size()),
+		     n,
+		     width, data_format, addr_format);
+    }
+}
+
 
 /*
  *                                                              Address decoder
@@ -1794,7 +1886,8 @@ bool
 cl_address_decoder::activate(class cl_console_base *con)
 {
 #define D if (con) con->debug
-  D("Activation of an address decoder\n");
+  //#define D printf
+  D("Activation of an address decoder %s (%s[%06lx-%06lx]\n", get_name(""), address_space->get_name(), as_begin, as_end);
   if (activated)
     {
       D("Already activated\n");
@@ -1836,6 +1929,7 @@ cl_address_decoder::activate(class cl_console_base *con)
 
   address_space->undecode_area(this, as_begin, as_end, con);
 
+  D("Decoder maps %s[%06lx-%06lx] -> %s[%06lx]...\n",address_space->get_name(),as_begin,as_end,memchip->get_name(),chip_begin);
   t_addr asa, ca;
   for (asa= as_begin, ca= chip_begin;
        asa <= as_end;
@@ -1843,7 +1937,7 @@ cl_address_decoder::activate(class cl_console_base *con)
     {
       if (!address_space->decode_cell(asa, memchip, ca))
 	{
-	  D("Decoding 0x%06x->0x%06x failed\n", asa, ca);
+	  D("Decoding 0x%06lx->0x%06lx failed\n", asa, ca);
 	}
     }
   activated= true;
@@ -2001,14 +2095,47 @@ cl_address_decoder::print_info(chars pre, class cl_console_base *con)
 cl_banker::cl_banker(class cl_address_space *the_banker_as,
 		     t_addr the_banker_addr,
 		     t_mem the_banker_mask,
+		     //int the_banker_shift,
 		     class cl_address_space *the_as,
 		     t_addr the_asb,
 		     t_addr the_ase):
-  cl_address_decoder(the_as, NULL, the_asb, the_ase, -1)
+  cl_address_decoder(the_as, NULL, the_asb, the_ase, (t_addr)-1)
 {
   banker_as= the_banker_as;
   banker_addr= the_banker_addr;
   banker_mask= the_banker_mask;
+  //banker_shift= the_banker_shift;
+  banker2_as= NULL;
+  banker2_addr= 0;
+  banker2_mask= 0;
+  banker2_shift= 0;
+  nuof_banks= 0;
+  banks= 0;
+  //bank_ptrs= 0;
+  bank= -1;
+}
+
+cl_banker::cl_banker(class cl_address_space *the_banker_as,
+		     t_addr the_banker_addr,
+		     t_mem the_banker_mask,
+		     //int the_banker_shift,
+		     class cl_address_space *the_banker2_as,
+		     t_addr the_banker2_addr,
+		     t_mem the_banker2_mask,
+		     int the_banker2_shift,
+		     class cl_address_space *the_as,
+		     t_addr the_asb,
+		     t_addr the_ase):
+  cl_address_decoder(the_as, NULL, the_asb, the_ase, (t_addr)-1)
+{
+  banker_as= the_banker_as;
+  banker_addr= the_banker_addr;
+  banker_mask= the_banker_mask;
+  //banker_shift= the_banker_shift;
+  banker2_as= the_banker2_as;
+  banker2_addr= the_banker2_addr;
+  banker2_mask= the_banker2_mask;
+  banker2_shift= the_banker2_shift;
   nuof_banks= 0;
   banks= 0;
   //bank_ptrs= 0;
@@ -2019,14 +2146,14 @@ int
 cl_banker::init()
 {
   int m= banker_mask;
-  int b;
+  int b, b2;
 
   shift_by= 0;
+  shift2_by= 0;
   if (m == 0)
     nuof_banks= 0;
   else
     {
-      shift_by= 0;
       while ((m&1) == 0)
 	m>>= 1, shift_by++;
       b= 1;
@@ -2037,6 +2164,20 @@ cl_banker::init()
 	  b++;
 	}
       nuof_banks= 1 << b;
+    }
+  shift2_by= 0;
+  if (banker2_as &&
+      banker2_mask)
+    {
+      m= banker2_mask;
+      while ((m&1) == 0)
+	m>>=1, shift2_by++;
+      b2= 1;
+      m>>= 1;
+      while ((m&1) != 0)
+	m>>= 1, b2++;
+      if (b2)
+	nuof_banks*= (1 << b2);
     }
   if (nuof_banks > 0)
     {
@@ -2052,10 +2193,20 @@ cl_banker::init()
   if (c)
     {
       class cl_bank_switcher_operator *o=
-	new cl_bank_switcher_operator(c, banker_addr, this);
+	new cl_bank_switcher_operator(c/*, banker_addr*/, this);
       c->prepend_operator(o);
     }
-  
+  if (banker2_as &&
+      banker2_mask)
+    {
+      c= banker2_as->get_cell(banker2_addr);
+      if (c)
+	{
+	  class cl_bank_switcher_operator *o=
+	    new cl_bank_switcher_operator(c/*, banker_addr*/, this);
+	  c->prepend_operator(o);
+	}
+    }
   return 0;
 }
 
@@ -2115,8 +2266,18 @@ cl_banker::actual_bank()
 {
   //t_mem m= banker_mask;
   t_mem v= banker_as->read(banker_addr) & banker_mask;
-
-  return v >> shift_by;
+  t_mem v2;
+  
+  v= (v >> shift_by);
+  if (banker2_as &&
+      banker2_mask)
+    {
+      v2= banker2_as->read(banker2_addr) & banker2_mask;
+      v2>>= shift2_by;
+      v2= v2 << banker2_shift;
+      v= v | v2;
+    }
+  return v;
 }
 
 bool

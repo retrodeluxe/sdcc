@@ -173,6 +173,12 @@ cl_cmd_arg::as_hw(class cl_uc *uc)
 }
 
 bool
+cl_cmd_arg::as_cell(class cl_uc *uc)
+{
+  return(false);
+}
+
+bool
 cl_cmd_arg::as_string(void)
 {
   char *s= get_svalue();
@@ -261,14 +267,13 @@ cl_cmd_sym_arg::as_string(void)
 bool
 cl_cmd_sym_arg::get_address(class cl_uc *uc, t_addr *addr)
 {
-  struct name_entry *ne;
+  t_addr a;
 
-  if ((ne= uc->get_name_entry(uc->sfr_tbl(),
-			      get_svalue())) != NULL)
+  if (uc->symbol2address(get_svalue(), NULL, &a))
     {
       if (addr)
-	*addr= ne->addr;
-      return(1);
+	*addr= a;
+      return 1;
     }
   return(0);
 }
@@ -279,6 +284,7 @@ cl_cmd_sym_arg::get_bit_address(class cl_uc *uc, // input
 				t_addr *mem_addr,
 				t_mem *bit_mask)
 {
+  /*
   struct name_entry *ne;
 
   ne= uc->get_name_entry(uc->bit_tbl(), get_svalue());
@@ -287,17 +293,38 @@ cl_cmd_sym_arg::get_bit_address(class cl_uc *uc, // input
   if (mem)
     *mem= uc->bit2mem(ne->addr, mem_addr, bit_mask);
   return(mem && *mem);
+  */
+  class cl_var *v= uc->var(get_svalue());
+  if (v)
+    {
+      if (mem)
+	*mem= v->as;
+      if (mem_addr)
+	*mem_addr= v->addr;
+      if (bit_mask)
+	{
+	  if (v->bitnr < 0)
+	    {
+	      *bit_mask= 1;
+	    }
+	  else
+	    {
+	      *bit_mask= 1 << v->bitnr;
+	    }
+	}
+      return true;
+    }
+  return false;
 }
 
 bool
 cl_cmd_sym_arg::as_address(class cl_uc *uc)
 {
-  struct name_entry *ne;
-  //printf("SYM %s as addr?\n",get_svalue());
-  if ((ne= uc->get_name_entry(uc->sfr_tbl(), get_svalue())) != NULL)
+  t_addr a;
+  if (uc->symbol2address(get_svalue(), NULL, &a))
     {
-      value.address= ne->addr;
-      return(true);
+      value.address= a;
+      return true;
     }
   return(false);
 }
@@ -317,6 +344,20 @@ cl_cmd_sym_arg::as_hw(class cl_uc *uc)
     return(false);
   value.hw= hw;
   return(true);
+}
+
+bool
+cl_cmd_sym_arg::as_cell(class cl_uc *uc)
+{
+  class cl_address_space *as;
+  t_addr addr;
+  
+  if (uc->symbol2address(get_svalue(), &as, &addr))
+    {
+      value.cell= as->get_cell(addr);
+      return value.cell != NULL;
+    }
+  return false;
 }
 
 
@@ -419,6 +460,26 @@ cl_cmd_array_arg::as_hw(class cl_uc *uc)
   
   value.hw= uc->get_hw(n, a, NULL);
   return(value.hw != NULL);
+}
+
+bool
+cl_cmd_array_arg::as_cell(class cl_uc *uc)
+{
+  // address_space[address]
+  char *n;
+  t_addr a;
+  if (name_arg == 0 ||
+      index == 0 ||
+      (n= name_arg->get_svalue()) == NULL ||
+      !index->get_address(uc, &a))
+    return false;
+  class cl_memory *m= uc->memory(n);
+  if (!m)
+    return false;
+  if (!m->is_address_space())
+    return false;
+  value.cell= ((cl_address_space*)m)->get_cell(a);
+  return value.cell != NULL;
 }
 
 

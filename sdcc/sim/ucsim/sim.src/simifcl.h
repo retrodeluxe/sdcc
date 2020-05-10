@@ -25,8 +25,6 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 02111-1307, USA. */
 /*@1@*/
 
-/* $Id: simifcl.h 546 2016-12-12 14:53:15Z drdani $ */
-
 #ifndef SIMIFCL_HEADER
 #define SIMIFCL_HEADER
 
@@ -108,8 +106,11 @@ enum simif_cfg {
   simif_idle_ticks	= 9,  // R
   simif_real_time	= 10, // R
   simif_vclk		= 11, // R
+  simif_pc		= 12, // RW
+  simif_print		= 13, // W
+  simif_write		= 14, // W
   
-  simif_nuof		= 12
+  simif_nuof		= 15
 };
 
 class cl_simulator_interface;
@@ -173,7 +174,7 @@ class cl_sif_detect: public cl_sif_command
 public:
   cl_sif_detect(class cl_simulator_interface *the_sif):
     cl_sif_command(SIFCM_DETECT, "if_detect",
-		   "Detect existance of interface",
+		   "Detect existence of interface",
 		   SIFAT_BYTE, 0, the_sif)
   {}
   virtual void produce_answer(void) { set_answer(t_mem(DETECT_SIGN)); }

@@ -30,8 +30,11 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 
 #include <stdio.h>
 #include <stdarg.h>
+
 // prj
 #include "stypes.h"
+#include "charscl.h"
+#include "fiocl.h"
 
 
 //#define TRACE printf
@@ -50,13 +53,19 @@ extern char *format_string(const char *format, ...);
 extern void print_char_octal(char c, FILE *f);
 extern const char *object_name(class cl_base *o);
 extern char *case_string(enum letter_case lcase, char *str);
+extern chars cbin(long data, int bits);
 
 extern double dnow(void);
 
 extern int strispn(char *s, char c);
+extern bool strend(char *search_in, char *what);
 extern bool valid_sym_name(char *s);
 
-  
+extern bool is_hex_file(class cl_f *f);
+extern bool is_omf_file(class cl_f *f);
+extern bool is_cdb_file(class cl_f *f);
+
+
 #endif
 
 /* End of utils.h */

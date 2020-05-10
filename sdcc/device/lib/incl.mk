@@ -17,7 +17,6 @@ COMMON_FLOAT = \
   _fsmul.c \
   _fssub.c \
   _fseq.c \
-  _fsgt.c \
   _fslt.c \
   _fsneq.c \
   fabsf.c \
@@ -73,6 +72,10 @@ COMMON_SDCC = \
   atoi.c \
   atol.c \
   atoll.c \
+  strtol.c \
+  strtoul.c \
+  bsearch.c \
+  qsort.c \
   abs.c \
   labs.c \
   rand.c \
@@ -105,6 +108,8 @@ COMMON_SDCC = \
   c16rtomb.c \
   mbrtoc32.c \
   c32rtomb.c \
+  mbstoc16s.c \
+  c16stombs.c \
   wcscmp.c \
   wcslen.c \
   btowc.c \
@@ -116,7 +121,7 @@ COMMON_SDCC = \
   printf_large.c \
   puts.c \
   gets.c \
-  assert.c \
+  __assert.c \
   time.c
 
-MODELS = small medium large
+MODELS = small medium large huge

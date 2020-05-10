@@ -18,7 +18,7 @@ void __printf(const char *szFormat, ...);
  #define _STATMEM
 #endif
 
-#if defined(PORT_HOST) || defined(__SDCC_z80) || defined(__SDCC_z180) || defined(__SDCC_r2k) || defined(__SDCC_r3ka) || defined(__SDCC_gbz80) || defined(__SDCC_stm8) || defined(__SDCC_tlcs90)
+#if defined(PORT_HOST) || defined(__SDCC_z80) || defined(__SDCC_z180) || defined(__SDCC_r2k) || defined(__SDCC_r3ka) || defined(__SDCC_gbz80) || defined(__SDCC_stm8) || defined(__SDCC_tlcs90) || defined(__SDCC_ez80_z80)
 # define __data
 # define __idata
 # define __pdata
@@ -46,7 +46,8 @@ void __printf(const char *szFormat, ...);
 
 void __fail (__code const char *szMsg, __code const char *szCond, __code const char *szFile, int line);
 void __prints (const char *s);
-void __printn (int n);
+void __printd (int n);
+void __printu (unsigned int n);
 __code const char *__getSuiteName (void);
 void __runSuite (void);
 

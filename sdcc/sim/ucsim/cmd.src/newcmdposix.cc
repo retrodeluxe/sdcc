@@ -191,12 +191,10 @@ cl_console::~cl_console(void)
       //fout->flush();
       if (fout->tty)
 	tu_reset();
-      deb("deleting fout:%d of console %d\n", fout->file_id, id);
       delete fout;
     }
   if (fin)
     {
-      deb("deleting fin:%d of console %d\n", fin->file_id, id);
       delete fin;
     }
 }
@@ -281,7 +279,6 @@ cl_console::read_line(void)
     i= fin->read(b, 1);
     if (i < -1)
       {
-	deb("read_line(con=%d,fid=%d) error\n", id, fin->file_id);
 	return -1;
       }
     if (i == 0)
@@ -304,7 +301,6 @@ cl_console::read_line(void)
 	    if (nl &&
 		(nl != b[0]))
 	      {
-		deb("readline: skip %d after %d\n", b[0], nl);
 		nl= 0;
 		continue;
 	      }
@@ -368,7 +364,6 @@ cl_listen_console::proc_input(class cl_cmdset *cmdset)
   cmd= app->get_commander();
 
   srv_accept(fin, &in, &out);
-  deb("Listener %d created in:%d out:%d\n", fin->file_id,in->file_id,out->file_id);
   class cl_console_base *c= new cl_console(in, out, app);
   c->set_flag(CONS_INTERACTIVE, true);
   in->interactive(out);
@@ -451,7 +446,9 @@ cl_commander::init(void)
   class cl_optref config_file_option(this);
   class cl_optref port_number_option(this);
   class cl_console_base *con;
-
+  int ccnt= 0;
+  cl_console_base *c;
+  
   console_on_option.init();
   console_on_option.use("console_on");
   config_file_option.init();
@@ -466,8 +463,18 @@ cl_commander::init(void)
   bool need_config= true;
 
   if (port_number_option.use("port_number"))
-    add_console(new cl_listen_console(port_number_option.get_value((long)0), app));
-
+    {
+      add_console(c= new cl_listen_console(port_number_option.get_value((long)0), app));
+    }
+  /*
+  else
+    {
+      c= new cl_listen_console(5559, app);
+      add_console(c);
+      c->prev_quit= 0;
+      ccnt= 1;
+    }
+  */
   char *Config= config_file_option.get_value("");
   char *cn= console_on_option.get_value("");
 
@@ -492,7 +499,7 @@ cl_commander::init(void)
 	  need_config= false;
 	}
     }
-  if (cons->get_count() == 0)
+  if (cons->get_count() == ccnt)
     {
       class cl_f *in, *out;
       in= cp_io(fileno(stdin), cchars("r"));
@@ -609,25 +616,19 @@ cl_commander::proc_input(void)
       if (c->input_active() &&
 	  f)
         {
-	  deb("check input on fid=%d\n", f->file_id);
 	  if (c->input_avail())
             {
               actual_console = c;
               int retval = c->proc_input(cmdset);
               if (retval)
                 {
-		  deb("closing console fin-fid=%d\n", f->file_id);
                   del_console(c);
                   //delete c;
                 }
               actual_console = 0;
 	      int i= consoles_prevent_quit();
-	      if (!i)
-		deb("no more consoles left\n");
               return(i == 0);
             }
-	  else
-	    deb("no input on fid=%d\n", f->file_id);
         }
     }
   return 0;

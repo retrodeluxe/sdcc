@@ -86,7 +86,7 @@ allocMap (char rspace,          /* sfr space                   */
       exit (1);
     }
 
-  memset (map, ZERO, sizeof (memmap));
+  memset (map, 0, sizeof (memmap));
   map->regsp = rspace;
   map->fmap = farmap;
   map->paged = paged;
@@ -346,7 +346,7 @@ initMem ()
   eeprom = allocMap (0, 1, 0, 0, 0, 0, 0, REG_NAME, 'K', EEPPOINTER);
 
   /* the unknown map */
-  generic = allocMap (1, 0, 0, 1, 1, 0, 0, REG_NAME, ' ', GPOINTER);
+  generic = allocMap (0, 0, 0, 0, 0, 0, 0, DATA_NAME, ' ', GPOINTER);
 
 }
 
@@ -382,7 +382,12 @@ allocIntoSeg (symbol *sym)
 
       return;
     }
-  segment = SPEC_OCLS (sym->etype);
+  if (!(segment = SPEC_OCLS (sym->etype)))
+    {
+      fprintf (stderr, "Symbol %s:\n", sym->name);
+      wassertl (0, "Failed to allocate symbol to memory segment due to missing output storage class");
+      return;
+    }
   addSet (&segment->syms, sym);
   if (segment == pdata)
     sym->iaccess = 1;
@@ -607,10 +612,22 @@ allocGlobal (symbol * sym)
 /* allocParms - parameters are always passed on stack              */
 /*-----------------------------------------------------------------*/
 void
-allocParms (value * val)
+allocParms (value *val, bool smallc)
 {
   value *lval;
   int pNum = 1;
+  int stackParamSizeAdjust = 0;
+
+  if (smallc)
+    {
+      for (lval = val; lval; lval = lval->next)
+      {
+        if (IS_REGPARM (lval->etype))
+          continue;
+        stackParamSizeAdjust += getSize (lval->type) + (getSize (lval->type) == 1);
+      }
+    }
+  stackPtr += stackParamSizeAdjust;
 
   for (lval = val; lval; lval = lval->next, pNum++)
     {
@@ -630,29 +647,32 @@ allocParms (value * val)
       /* if automatic variables r 2b stacked */
       if (options.stackAuto || IFFUNC_ISREENT (currFunc->type))
         {
+          int paramsize = getSize (lval->type) + (getSize (lval->type) == 1 && smallc);
+
           if (lval->sym)
             lval->sym->onStack = 1;
 
           /* choose which stack 2 use   */
-          /*  use xternal stack */
-          if (options.useXstack)
+          if (options.useXstack)    /* use external stack */
             {
               /* PENDING: stack direction support */
+              wassertl (!smallc, "SmallC calling convention not yet supported for xstack callee");
               SPEC_OCLS (lval->etype) = SPEC_OCLS (lval->sym->etype) = xstack;
               SPEC_STAK (lval->etype) = SPEC_STAK (lval->sym->etype) = lval->sym->stack =
-                xstackPtr - getSize (lval->type);
-              xstackPtr -= getSize (lval->type);
+                xstackPtr - paramsize;
+              xstackPtr -= paramsize;
             }
-          else
-            {                   /* use internal stack   */
+          else                      /* use internal stack   */
+            {
+              
               SPEC_OCLS (lval->etype) = SPEC_OCLS (lval->sym->etype) = istack;
-              if (port->stack.direction > 0)
+              if ((port->stack.direction > 0) != smallc)
                 {
                   SPEC_STAK (lval->etype) = SPEC_STAK (lval->sym->etype) = lval->sym->stack =
                     stackPtr - (FUNC_REGBANK (currFunc->type) ? port->stack.bank_overhead : 0) -
-                    getSize (lval->type) -
+                    paramsize -
                     (FUNC_ISISR (currFunc->type) ? port->stack.isr_overhead : 0);
-                  stackPtr -= getSize (lval->type);
+                  stackPtr -= paramsize;
                 }
               else
                 {
@@ -662,13 +682,18 @@ allocParms (value * val)
                     stackPtr +
                     (FUNC_ISISR (currFunc->type) ? port->stack.isr_overhead : 0) +
                     0;
-                  stackPtr += getSize (lval->type);
+                  stackPtr += paramsize;
                 }
             }
           allocIntoSeg (lval->sym);
         }
       else
-        { /* allocate them in the automatic space */
+        {
+          /* Do not allocate for inline functions to avoid multiple definitions - see bug report #2591. */
+          if(IFFUNC_ISINLINE (currFunc->type) && !IS_STATIC (currFunc->etype) && !IS_EXTERN (currFunc->etype))
+            continue;
+
+          /* allocate them in the automatic space */
           /* generate a unique name  */
           SNPRINTF (lval->sym->rname, sizeof(lval->sym->rname),
                     "%s%s_PARM_%d", port->fun_prefix, currFunc->name, pNum);
@@ -706,6 +731,9 @@ allocParms (value * val)
           allocIntoSeg (lval->sym);
         }
     }
+
+  stackPtr -= stackParamSizeAdjust;
+
   return;
 }
 
@@ -946,7 +974,7 @@ allocVariables (symbol * symChain)
   symbol *sym;
   symbol *csym;
   int stack = 0;
-  int saveLevel = 0;
+  long saveLevel = 0;
 
   /* go thru the symbol chain   */
   for (sym = symChain; sym; sym = sym->next)
@@ -957,7 +985,8 @@ allocVariables (symbol * symChain)
         {
           /* check if the typedef already exists    */
           csym = findSym (TypedefTab, NULL, sym->name);
-          if (csym && csym->level == sym->level)
+          if (csym && csym->level == sym->level &&
+            !(options.std_c11 && compareTypeExact (sym->type, csym->type, -1))) /* typedef to same type not allowed before ISO C11 */
             werror (E_DUPLICATE_TYPEDEF, sym->name);
 
           SPEC_EXTR (sym->etype) = 0;
@@ -1008,6 +1037,31 @@ allocVariables (symbol * symChain)
     }
 
   return stack;
+}
+
+void
+clearStackOffsets (void)
+{
+  const symbol *sym;
+
+  for (sym = setFirstItem (istack->syms); sym;
+       sym = setNextItem (istack->syms))
+    {
+      const int size = getSize (sym->type);
+      
+      /* nothing to do with parameters so continue */
+      if ((sym->_isparm && !IS_REGPARM (sym->etype)))
+        continue;
+
+      currFunc->stack -= size;
+      SPEC_STAK (currFunc->etype) -= size;
+    }
+
+  if (currFunc)
+    {
+      //wassert(!(currFunc->stack)); // Sometimes some local variable was included in istack->sams.
+      currFunc->stack = 0;
+    }
 }
 
 #define BTREE_STACK 1

@@ -167,10 +167,12 @@ static void checkCurrFile (const char *s);
 "inline"                { count (); TKEYWORD99 (INLINE); }
 "_Noreturn"             { count (); return NORETURN;}
 "restrict"              { count (); TKEYWORD99 (RESTRICT); }
-"__smallc"              { count (); return SMALLC; }
+"__smallc"              { count (); TKEYWORD (SMALLC); }
 "__preserves_regs"      { count (); return PRESERVES_REGS; }
 "__z88dk_fastcall"      { count (); TKEYWORD (Z88DK_FASTCALL); }
 "__z88dk_callee"        { count (); TKEYWORD (Z88DK_CALLEE); }
+"__z88dk_shortcall"     { count (); return Z88DK_SHORTCALL; }
+"__z88dk_params_offset" { count (); return Z88DK_PARAMS_OFFSET; }
 "__addressmod"          { count (); return ADDRESSMOD; }
 "_Static_assert"        { count (); return STATIC_ASSERT; }
 "_Alignas"              { count (); return ALIGNAS; }
@@ -189,12 +191,12 @@ static void checkCurrFile (const char *s);
       yyerror ("binary (0b) constants are not allowed in ISO C");
     }
   count ();
-  yylval.val = constVal (yytext);
+  yylval.val = constIntVal (yytext);
   return CONSTANT;
 }
-0[xX]{H}+{IS}?               { count (); yylval.val = constVal (yytext); return CONSTANT; }
-0[0-7]*{IS}?                 { count (); yylval.val = constVal (yytext); return CONSTANT; }
-[1-9]{D}*{IS}?               { count (); yylval.val = constVal (yytext); return CONSTANT; }
+0[xX]{H}+{IS}?               { count (); yylval.val = constIntVal (yytext); return CONSTANT; }
+0[0-7]*{IS}?                 { count (); yylval.val = constIntVal (yytext); return CONSTANT; }
+[1-9]{D}*{IS}?               { count (); yylval.val = constIntVal (yytext); return CONSTANT; }
 {CP}?'(\\.|[^\\'])+'         { count (); yylval.val = charVal (yytext); return CONSTANT; /* ' make syntax highlighter happy */ }
 {D}+{E}{FS}?                 { count (); yylval.val = constFloatVal (yytext); return CONSTANT; }
 {D}*"."{D}+({E})?{FS}?       { count (); yylval.val = constFloatVal (yytext); return CONSTANT; }
@@ -598,7 +600,6 @@ enum {
    P_NOINDUCTION,
    P_NOINVARIANT,
    P_STACKAUTO,
-   P_NOJTBOUND,
    P_OVERLAY_,     /* I had a strange conflict with P_OVERLAY while */
                    /* cross-compiling for MINGW32 with gcc 3.2 */
    P_NOOVERLAY,
@@ -615,6 +616,7 @@ enum {
    P_STD_C89,
    P_STD_C99,
    P_STD_C11,
+   P_STD_C2X,
    P_STD_SDCC89,
    P_STD_SDCC99,
    P_CODESEG,
@@ -799,17 +801,6 @@ doPragma (int id, const char *name, const char *cp)
       options.stackAuto = 1;
       break;
 
-    case P_NOJTBOUND:
-      cp = get_pragma_token(cp, &token);
-      if (TOKEN_EOL != token.type)
-        {
-          err = 1;
-          break;
-        }
-
-      optimize.noJTabBoundary = 1;
-      break;
-
     case P_NOGCSE:
       cp = get_pragma_token(cp, &token);
       if (TOKEN_EOL != token.type)
@@ -960,6 +951,7 @@ doPragma (int id, const char *name, const char *cp)
 
       options.std_c99 = 0;
       options.std_c11 = 0;
+      options.std_c2x = 0;
       options.std_sdcc = 0;
       break;
 
@@ -972,6 +964,8 @@ doPragma (int id, const char *name, const char *cp)
         }
 
       options.std_c99 = 1;
+      options.std_c11 = 0;
+      options.std_c2x = 0;
       options.std_sdcc = 0;
       break;
 
@@ -985,6 +979,21 @@ doPragma (int id, const char *name, const char *cp)
 
       options.std_c99 = 1;
       options.std_c11 = 1;
+      options.std_c2x = 0;
+      options.std_sdcc = 0;
+      break;
+
+    case P_STD_C2X:
+      cp = get_pragma_token(cp, &token);
+      if (TOKEN_EOL != token.type)
+        {
+          err = 1;
+          break;
+        }
+
+      options.std_c99 = 1;
+      options.std_c11 = 1;
+      options.std_c2x = 1;
       options.std_sdcc = 0;
       break;
 
@@ -998,6 +1007,7 @@ doPragma (int id, const char *name, const char *cp)
 
       options.std_c99 = 0;
       options.std_c11 = 0;
+      options.std_c2x = 0;
       options.std_sdcc = 1;
       break;
 
@@ -1011,6 +1021,7 @@ doPragma (int id, const char *name, const char *cp)
 
       options.std_c99 = 1;
       options.std_c11 = 0;
+      options.std_c2x = 0;
       options.std_sdcc = 1;
       break;
 
@@ -1066,7 +1077,6 @@ static struct pragma_s pragma_tbl[] = {
   { "noinvariant",       P_NOINVARIANT,     0, doPragma },
   { "noloopreverse",     P_LOOPREV,         0, doPragma },
   { "stackauto",         P_STACKAUTO,       0, doPragma },
-  { "nojtbound",         P_NOJTBOUND,       0, doPragma },
   { "nogcse",            P_NOGCSE,          0, doPragma },
   { "overlay",           P_OVERLAY_,        0, doPragma },
   { "nooverlay",         P_NOOVERLAY,       0, doPragma },
@@ -1081,6 +1091,7 @@ static struct pragma_s pragma_tbl[] = {
   { "std_c89",           P_STD_C89,         0, doPragma },
   { "std_c99",           P_STD_C99,         0, doPragma },
   { "std_c11",           P_STD_C11,         0, doPragma },
+  { "std_c2x",           P_STD_C2X,         0, doPragma },
   { "std_sdcc89",        P_STD_SDCC89,      0, doPragma },
   { "std_sdcc99",        P_STD_SDCC99,      0, doPragma },
   { "codeseg",           P_CODESEG,         0, doPragma },

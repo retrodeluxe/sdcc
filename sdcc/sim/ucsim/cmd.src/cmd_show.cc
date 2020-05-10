@@ -97,7 +97,7 @@ COMMAND_DO_WORK_APP(cl_show_option_cmd)
 	  !strcmp(s, o->get_name()))
 	{
 	  int j;
-	  con->dd_printf("%d. %s: ", i, object_name(o));
+	  con->dd_printf("%d. %s (%p): ", i, object_name(o), o);
 	  o->print(con);
 	  con->dd_printf(" - %s\n", o->help);
 	  con->dd_printf("  Type: %s\n", o->get_type_name());
@@ -201,7 +201,8 @@ COMMAND_DO_WORK_APP(cl_show_console)
   for (i= 0; i < cm->cons->count; i++)
     {
       cn= (class cl_console *)(cm->cons->at(i));
-      con->dd_printf("%d %s ", cn->get_id(), cn->get_name());
+      con->dd_printf("%d %s %s(%d) ", cn->get_id(), cn->get_name(),
+		     cn->prevent_quit()?"PrevQuit":"", cn->prev_quit);
       int f= cn->get_flags();
       con->dd_printf("%c", 'D'|((f&CONS_DEBUG)?0:0x20));
       con->dd_printf("%c", 'F'|((f&CONS_FROZEN)?0:0x20));

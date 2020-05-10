@@ -77,7 +77,7 @@ COMMAND_DO_WORK_UC(cl_state_cmd)
   con->dd_printf("Max value of stack pointer= 0x%06x, avg= 0x%06x\n",
 		 uc->sp_max, uc->sp_avg);
   con->dd_printf("Simulation: %s\n",
-		 (uc->sim->state & SIM_GO)?"runnig":"stopped");
+		 (uc->sim->state & SIM_GO)?"running":"stopped");
   return(0);
 }
 
@@ -101,9 +101,10 @@ COMMAND_DO_WORK_UC(cl_file_cmd)
       con->dd_printf("File name is missing.\n");
       return(0);
     }
-  if ((l= uc->read_hex_file(fname)) >= 0)
-    con->dd_printf("%ld words read from %s\n", l, fname);
-
+  
+  if ((l= uc->read_file(fname, con)) >= 0)
+    ;//con->dd_printf("%ld words read from %s\n", l, fname);
+    
   return(0);
 }
 
@@ -120,7 +121,7 @@ COMMAND_DO_WORK_UC(cl_dl_cmd)
 {
   long l;
   
-  if ((l= uc->read_hex_file(NULL)) >= 0)
+  if ((l= uc->read_hex_file(con)) >= 0)
     con->dd_printf("%ld words loaded\n", l);
 
   return(0);
@@ -616,6 +617,10 @@ COMMAND_DO_WORK_UC(cl_var_cmd)
       m= params[1]->value.memory.memory;
       addr= params[2]->value.address;
     }
+  else if (cmdline->syntax_match(uc, STRING CELL))
+    {
+      m= uc->address_space(params[1]->value.cell, &addr);
+    }
   else if (cmdline->syntax_match(uc, STRING))
     {
     }
@@ -653,7 +658,7 @@ COMMAND_DO_WORK_UC(cl_var_cmd)
   if (m)
     {
       v= new cl_var(params[0]->value.string.string,
-		    (cl_address_space*)m, addr, bit);
+		    (cl_address_space*)m, addr, chars(""), bit);
       v->init();
       uc->vars->add(v);
     }
@@ -671,7 +676,7 @@ COMMAND_DO_WORK_UC(cl_var_cmd)
 	    return con->dd_printf("out of range\n"),
 	      false;
 	  v= new cl_var(params[0]->value.string.string,
-			uc->variables, addr, bit);
+			uc->variables, addr, chars(""), bit);
 	  v->init();
 	  uc->vars->add(v);
 	}

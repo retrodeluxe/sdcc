@@ -44,17 +44,6 @@
 
 #include "version.h"
 
-/** C99 isblank implementation for Visual C++ 2010
-*/
-
-#if defined(_MSC_VER) && (_MSC_VER < 1800)
-int
-isblank(int c)
-{
-  return (c == ' ' || c == '\t');
-}
-#endif
-
 /** Given an array of name, value string pairs creates a new hash
     containing all of the pairs.
 */
@@ -736,7 +725,6 @@ getBuildEnvironment (void)
 #endif
 }
 
-#if defined(HAVE_VSNPRINTF) || defined(HAVE_VSPRINTF)
 size_t
 SDCCsnprintf (char *dst, size_t n, const char *fmt, ...)
 {
@@ -745,12 +733,7 @@ SDCCsnprintf (char *dst, size_t n, const char *fmt, ...)
 
   va_start (args, fmt);
 
-#if defined(HAVE_VSNPRINTF)
   len = vsnprintf (dst, n, fmt, args);
-#else
-  vsprintf (dst, fmt, args);
-  len = strlen (dst) + 1;
-#endif
 
   va_end (args);
 
@@ -765,7 +748,6 @@ SDCCsnprintf (char *dst, size_t n, const char *fmt, ...)
 
   return len;
 }
-#endif
 
 /** Pragma tokenizer
  */
@@ -940,8 +922,8 @@ octalEscape (const char **str)
 const char *
 copyStr (const char *src, size_t *size)
 {
- const char *begin = NULL;
- struct dbuf_s dbuf;
+  const char *begin = NULL;
+  struct dbuf_s dbuf;
 
   dbuf_init(&dbuf, 128);
 

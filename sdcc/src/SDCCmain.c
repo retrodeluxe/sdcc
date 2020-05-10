@@ -97,10 +97,6 @@ char buffer[PATH_MAX * 2];
 #define OPTION_HELP                 "--help"
 #define OPTION_OUT_FMT_IHX          "--out-fmt-ihx"
 #define OPTION_OUT_FMT_S19          "--out-fmt-s19"
-#define OPTION_HUGE_MODEL           "--model-huge"
-#define OPTION_LARGE_MODEL          "--model-large"
-#define OPTION_MEDIUM_MODEL         "--model-medium"
-#define OPTION_SMALL_MODEL          "--model-small"
 #define OPTION_PEEP_FILE            "--peep-file"
 #define OPTION_LIB_PATH             "--lib-path"
 #define OPTION_CALLEE_SAVES         "--callee-saves"
@@ -136,11 +132,14 @@ char buffer[PATH_MAX * 2];
 #define OPTION_STD_C95              "--std-c95"
 #define OPTION_STD_C99              "--std-c99"
 #define OPTION_STD_C11              "--std-c11"
+#define OPTION_STD_C2X              "--std-c2x"
 #define OPTION_STD_SDCC89           "--std-sdcc89"
 #define OPTION_STD_SDCC99           "--std-sdcc99"
 #define OPTION_STD_SDCC11           "--std-sdcc11"
+#define OPTION_STD_SDCC2X           "--std-sdcc2x"
 #define OPTION_CODE_SEG             "--codeseg"
 #define OPTION_CONST_SEG            "--constseg"
+#define OPTION_DATA_SEG             "--dataseg"
 #define OPTION_DOLLARS_IN_IDENT     "--fdollars-in-identifiers"
 #define OPTION_SIGNED_CHAR          "--fsigned-char"
 #define OPTION_USE_NON_FREE         "--use-non-free"
@@ -154,17 +153,22 @@ char buffer[PATH_MAX * 2];
 #define OPTION_DUMP_I_CODE          "--dump-i-code"
 #define OPTION_DUMP_GRAPHS          "--dump-graphs"
 
+#define OPTION_SMALL_MODEL          "--model-small"
+#define OPTION_MEDIUM_MODEL         "--model-medium"
+#define OPTION_LARGE_MODEL          "--model-large"
+#define OPTION_HUGE_MODEL           "--model-huge"
+
 static const OPTION optionsTable[] = {
   {0,   NULL, NULL, "General options"},
   {0,   OPTION_HELP, NULL, "Display this help"},
   {'v', OPTION_VERSION, NULL, "Display sdcc's version"},
   {0,   "--verbose", &options.verbose, "Trace calls to the preprocessor, assembler, and linker"},
   {'V', NULL, &options.verboseExec, "Execute verbosely. Show sub commands as they are run"},
-  {'d', NULL, NULL, NULL},
+  {'d', NULL, NULL, "Output list of mcaro definitions in effect. Use with -E"},
   {'D', NULL, NULL, "Define macro as in -Dmacro"},
   {'I', NULL, NULL, "Add to the include (*.h) path, as in -Ipath"},
   {'A', NULL, NULL, NULL},
-  {'U', NULL, NULL, NULL},
+  {'U', NULL, NULL, "Undefine macro as in -Umacro"},
   {'M', NULL, NULL, "Preprocessor option"},
   {'W', NULL, NULL, "Pass through options to the pre-processor (p), assembler (a) or linker (l)"},
   {'S', NULL, &noAssemble, "Compile only; do not assemble or link"},
@@ -189,6 +193,8 @@ static const OPTION optionsTable[] = {
   {0,   OPTION_STD_SDCC99, NULL, "Use ISO C99 standard with SDCC extensions"},
   {0,   OPTION_STD_C11, NULL, "Use ISO C11 standard (incomplete)"},
   {0,   OPTION_STD_SDCC11, NULL, "Use ISO C11 standard with SDCC extensions (default)"},
+  {0,   OPTION_STD_C2X, NULL, "Use ISO C2X standard (incomplete)"},
+  {0,   OPTION_STD_SDCC2X, NULL, "Use ISO C2X standard with SDCC extensions"},
   {0,   OPTION_DOLLARS_IN_IDENT, &options.dollars_in_ident, "Permit '$' as an identifier character"},
   {0,   OPTION_SIGNED_CHAR, &options.signed_char, "Make \"char\" signed by default"},
   {0,   OPTION_USE_NON_FREE, &options.use_non_free, "Search / include non-free licensed libraries and header files"},
@@ -196,10 +202,6 @@ static const OPTION optionsTable[] = {
   {0,   NULL, NULL, "Code generation options"},
   {'m', NULL, NULL, "Set the port to use e.g. -mz80."},
   {'p', NULL, NULL, "Select port specific processor e.g. -mpic14 -p16f84"},
-  {0,   OPTION_SMALL_MODEL, NULL, "internal data space is used (default)"},
-  {0,   OPTION_MEDIUM_MODEL, NULL, "external paged data space is used"},
-  {0,   OPTION_LARGE_MODEL, NULL, "external data space is used"},
-  {0,   OPTION_HUGE_MODEL, NULL, "functions are banked, data in external space"},
   {0,   "--stack-auto", &options.stackAuto, "Stack automatic variables"},
   {0,   "--xstack", &options.useXstack, "Use external stack"},
   {0,   "--int-long-reent", &options.intlong_rent, "Use reentrant calls on the int and long support functions"},
@@ -215,6 +217,7 @@ static const OPTION optionsTable[] = {
   {0,   OPTION_NO_PEEP_COMMENTS, &options.noPeepComments, "don't include peephole optimizer comments"},
   {0,   OPTION_CODE_SEG, NULL, "<name> use this name for the code segment"},
   {0,   OPTION_CONST_SEG, NULL, "<name> use this name for the const segment"},
+  {0,   OPTION_DATA_SEG, NULL, "<name> use this name for the data segment"},
 
   {0,   NULL, NULL, "Optimization options"},
   {0,   "--nooverlay", &options.noOverlay, "Disable overlaying leaf function auto variables"},
@@ -222,7 +225,6 @@ static const OPTION optionsTable[] = {
   {0,   OPTION_NO_LABEL_OPT, NULL, "Disable label optimisation"},
   {0,   OPTION_NO_LOOP_INV, NULL, "Disable optimisation of invariants"},
   {0,   OPTION_NO_LOOP_IND, NULL, "Disable loop variable induction"},
-  {0,   "--nojtbound", &optimize.noJTabBoundary, "Don't generate boundary check for jump tables"},
   {0,   "--noloopreverse", &optimize.noLoopReverse, "Disable the loop reverse optimisation"},
   {0,   "--no-peep", &options.nopeep, "Disable the peephole assembly file optimisation"},
   {0,   "--no-reg-params", &options.noRegParams, "On some ports, disable passing some parameters in registers"},
@@ -235,6 +237,7 @@ static const OPTION optionsTable[] = {
   {0,   OPTION_MAX_ALLOCS_PER_NODE, &options.max_allocs_per_node, "Maximum number of register assignments considered at each node of the tree decomposition", CLAT_INTEGER},
   {0,   OPTION_NO_LOSPRE, NULL, "Disable lospre"},
   {0,   OPTION_ALLOW_UNSAFE_READ, NULL, "Allow optimizations to read any memory location anytime"},
+  {0,   "--nostdlibcall", &optimize.noStdLibCall, "Disable optimization of calls to standard library"},
 
   {0,   NULL, NULL, "Internal debugging options"},
   {0,   OPTION_DUMP_AST, &options.dump_ast, "Dump front-end AST before generating i-code"},
@@ -323,6 +326,9 @@ static PORT *_ports[] = {
 #endif
 #if !OPT_DISABLE_TLCS90
   &tlcs90_port,
+#endif
+#if !OPT_DISABLE_EZ80_Z80
+  &ez80_z80_port,
 #endif
 #if !OPT_DISABLE_AVR
   &avr_port,
@@ -610,8 +616,10 @@ setDefaultOptions (void)
   options.std_c95 = 1;
   options.std_c99 = 1;
   options.std_c11 = 1;          /* default to C11 (we want inline by default, so we need at least C99, and support for C11 is more complete than C99) */
+  options.std_c2x = 0;
   options.code_seg = CODE_NAME ? Safe_strdup (CODE_NAME) : NULL;        /* default to CSEG for generated code */
   options.const_seg = CONST_NAME ? Safe_strdup (CONST_NAME) : NULL;     /* default to CONST for generated code */
+  options.data_seg = DATA_NAME ? Safe_strdup (DATA_NAME) : NULL;        /* default to DATA for non-initialized data */
   options.stack10bit = 0;
   options.out_fmt = 0;
   options.dump_graphs = 0;
@@ -772,7 +780,7 @@ getStringArg (const char *szStart, char **argv, int *pi, int argc)
 /** Gets the integer argument to this option using the same rules as
     getStringArg.
 */
-int
+long
 getIntArg (const char *szStart, char **argv, int *pi, int argc)
 {
   char *p;
@@ -867,6 +875,9 @@ scanOptionsTable (const OPTION * optionsTable, char shortOpt, const char *longOp
                (optionsTable[i].arg_type == CLAT_BOOLEAN && len == strlen (longOpt) && optionsTable[i].longOpt)) &&
               strncmp (optionsTable[i].longOpt, longOpt, len) == 0)
             {
+              if (strncmp ("--nojtbound", longOpt, len) == 0)
+                werror (W_DEPRECATED_OPTION, "--nojtbound");
+
               /* If it is a flag then we can handle it here */
               if (optionsTable[i].pparameter != NULL)
                 {
@@ -1137,6 +1148,7 @@ parseCmdLine (int argc, char **argv)
               options.std_c95 = 0;
               options.std_c99 = 0;
               options.std_c11 = 0;
+              options.std_c2x = 0;
               options.std_sdcc = 0;
               continue;
             }
@@ -1146,6 +1158,7 @@ parseCmdLine (int argc, char **argv)
               options.std_c95 = 1;
               options.std_c99 = 0;
               options.std_c11 = 0;
+              options.std_c2x = 0;
               options.std_sdcc = 0;
               continue;
             }
@@ -1155,6 +1168,7 @@ parseCmdLine (int argc, char **argv)
               options.std_c95 = 1;
               options.std_c99 = 1;
               options.std_c11 = 0;
+              options.std_c2x = 0;
               options.std_sdcc = 0;
               continue;
             }
@@ -1164,6 +1178,17 @@ parseCmdLine (int argc, char **argv)
               options.std_c95 = 1;
               options.std_c99 = 1;
               options.std_c11 = 1;
+              options.std_c2x = 0;
+              options.std_sdcc = 0;
+              continue;
+            }
+
+          if (strcmp (argv[i], OPTION_STD_C2X) == 0)
+            {
+              options.std_c95 = 1;
+              options.std_c99 = 1;
+              options.std_c11 = 1;
+              options.std_c2x = 1;
               options.std_sdcc = 0;
               continue;
             }
@@ -1173,6 +1198,7 @@ parseCmdLine (int argc, char **argv)
               options.std_c95 = 0;
               options.std_c99 = 0;
               options.std_c11 = 0;
+              options.std_c2x = 0;
               options.std_sdcc = 1;
               continue;
             }
@@ -1182,6 +1208,7 @@ parseCmdLine (int argc, char **argv)
               options.std_c95 = 1;
               options.std_c99 = 1;
               options.std_c11 = 0;
+              options.std_c2x = 0;
               options.std_sdcc = 1;
               continue;
             }
@@ -1191,6 +1218,17 @@ parseCmdLine (int argc, char **argv)
               options.std_c95 = 1;
               options.std_c99 = 1;
               options.std_c11 = 1;
+              options.std_c2x = 0;
+              options.std_sdcc = 1;
+              continue;
+            }
+
+          if (strcmp (argv[i], OPTION_STD_SDCC2X) == 0)
+            {
+              options.std_c95 = 1;
+              options.std_c99 = 1;
+              options.std_c11 = 1;
+              options.std_c2x = 1;
               options.std_sdcc = 1;
               continue;
             }
@@ -1216,6 +1254,18 @@ parseCmdLine (int argc, char **argv)
               if (options.const_seg)
                 Safe_free (options.const_seg);
               options.const_seg = dbuf_detach (&segname);
+              continue;
+            }
+
+          if (strcmp (argv[i], OPTION_DATA_SEG) == 0)
+            {
+              struct dbuf_s segname;
+
+              dbuf_init (&segname, 16);
+              dbuf_printf (&segname, "%-8s(DATA)", getStringArg (OPTION_DATA_SEG, argv, &i, argc));
+              if (options.data_seg)
+                Safe_free (options.data_seg);
+              options.data_seg = dbuf_detach (&segname);
               continue;
             }
 
@@ -2108,6 +2158,20 @@ preProcess (char **envp)
         addSet (&preArgvSet, dbuf_detach_c_str (&dbuf));
       }
 
+      /* A macro that has been deprecated since 3.2.0,
+        since its name makes it non-compliant.
+        It got removed a few times, but keeps coming back.
+        This time it got added back for the 3.7.0 release
+        to support the old SiLabs IDE */
+      if (TARGET_IS_MCS51 && options.std_sdcc)
+        {
+          struct dbuf_s dbuf;
+
+          dbuf_init (&dbuf, 32);
+          dbuf_printf (&dbuf, "-DSDCC=%d%d%d", SDCC_VERSION_HI, SDCC_VERSION_LO, SDCC_VERSION_P);
+          addSet (&preArgvSet, dbuf_detach_c_str (&dbuf));
+        }
+
       /* add SDCC revision number */
       {
         struct dbuf_s dbuf;
@@ -2120,13 +2184,13 @@ preProcess (char **envp)
       /* add port (processor information to processor */
       addSet (&preArgvSet, Safe_strdup ("-D__SDCC_{port}"));
 
-      /* Optinal C features not (yet) supported by sdcc */
+      /* Optional C features not (yet) supported by SDCC */
       addSet (&preArgvSet, Safe_strdup ("-D__STDC_NO_COMPLEX__=1"));
       addSet (&preArgvSet, Safe_strdup ("-D__STDC_NO_THREADS__=1"));
       addSet (&preArgvSet, Safe_strdup ("-D__STDC_NO_ATOMICS__=1"));
       addSet (&preArgvSet, Safe_strdup ("-D__STDC_NO_VLA__=1"));
 
-      /* Character encoding */
+      /* Character encoding  - these need to be set in device/lib/Makefile.in for $CPP, too */
       addSet (&preArgvSet, Safe_strdup ("-D__STDC_ISO_10646__=201409L")); // wchar_t is UTF-32
       addSet (&preArgvSet, Safe_strdup ("-D__STDC_UTF_16__=1")); // char16_t is UTF-16
       addSet (&preArgvSet, Safe_strdup ("-D__STDC_UTF_32__=1")); // char32_t is UTF-32

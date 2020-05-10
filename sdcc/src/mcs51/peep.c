@@ -193,8 +193,8 @@ findLabel (const lineNode *pl)
   /* 3. search lineNode with label definition and return it */
   for (cpl = _G.head; cpl; cpl = cpl->next)
     {
-      if (   cpl->isLabel
-          && strcmp (p, cpl->line) == 0)
+      if (cpl->isLabel
+          && strncmp (p, cpl->line, strlen(p)) == 0)
         {
           return cpl;
         }
@@ -262,7 +262,7 @@ termScanAtFunc (const lineNode *pl, int rIdx)
 /*       points to a register (e.g. "ar0"). scan4op() tests for    */
 /*       read or write operations with this register               */
 /*    const char *untilOp                                          */
-/*       points to NULL or a opcode (e.g. "push").                 */
+/*       points to NULL or an opcode (e.g. "push").                */
 /*       scan4op() returns if it hits this opcode.                 */
 /*    lineNode **plCond                                            */
 /*       If a conditional branch is met plCond points to the       */
@@ -572,6 +572,7 @@ doPushScan (lineNode **pl, const char *pReg)
             /* already checked */
             return TRUE;
           case S4O_CONDJMP:
+#if 0
             /* two possible destinations: recurse */
               {
                 lineNode *pushPl2 = plConditional;
@@ -581,6 +582,10 @@ doPushScan (lineNode **pl, const char *pReg)
                 pushPl = pushPl2;
               }
             continue;
+#else
+            /* two possible destinations: give up */
+            return FALSE;
+#endif   
           default:
             return FALSE;
         }

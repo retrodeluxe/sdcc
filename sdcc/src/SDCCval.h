@@ -108,6 +108,7 @@ CCR_RESULT;
 /* forward definitions for the symbol table related functions */
 value *newValue (void);
 value *constVal (const char *);
+value *constIntVal (const char *);
 value *constCharacterVal (unsigned long v, char type);
 value *constCharVal (unsigned char v);
 value *constBoolVal (bool v);
@@ -116,6 +117,7 @@ value *reverseValWithType (value *);
 value *copyValue (value *);
 value *copyValueChain (value *);
 value *strVal (const char *);
+value *rawStrVal (const char *, size_t size);
 value *charVal (const char *);
 value *symbolVal (symbol *);
 void printVal (value *);

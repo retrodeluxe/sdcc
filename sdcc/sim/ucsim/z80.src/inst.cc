@@ -1275,17 +1275,17 @@ cl_z80::inst_exx(t_mem code)
   /* case 0xD9: // EXX - swap BC,DE,HL with alternates */
   u16_t tempw;
 
+  tempw = regs.aHL;
+  regs.aHL = regs.HL;
+  regs.HL = tempw;
+
+  tempw = regs.aDE;
+  regs.aDE = regs.DE;
+  regs.DE = tempw;
+
   tempw = regs.aBC;
-  regs.BC = regs.aBC;
-  regs.aBC = tempw;
-
-  tempw = regs.aDE;
-  regs.DE = regs.aDE;
-  regs.aDE = tempw;
-
-  tempw = regs.aDE;
-  regs.DE = regs.aDE;
-  regs.aDE = tempw;
+  regs.aBC = regs.BC;
+  regs.BC = tempw;
 
   return(resGO);
 }

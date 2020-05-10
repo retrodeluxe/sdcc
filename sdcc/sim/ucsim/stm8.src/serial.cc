@@ -25,8 +25,6 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 02111-1307, USA. */
 /*@1@*/
 
-/* $Id: serial.cc 623 2017-02-03 18:09:49Z drdani $ */
-
 #include "ddconfig.h"
 
 #include <stdio.h>
@@ -88,7 +86,8 @@ int
 cl_serial::init(void)
 {
   int i;
-
+  class cl_it_src *is;
+  
   set_name("stm8_uart");
   cl_serial_hw::init();
   clk_enabled= false;
@@ -99,31 +98,27 @@ cl_serial::init(void)
   pick_div();
   pick_ctrl();
 
-  uc->it_sources->add(new cl_it_src(uc, txit,
-				    regs[cr2], 0x80,
-				    regs[sr], 0x80,
-				    0x8008+txit*4, false, false,
-				    chars("", "usart%d transmit register empty", id), 20*10+1));
-  uc->it_sources->add(new cl_it_src(uc, txit,
-				    regs[cr2], 0x40,
-				    regs[sr], 0x40,
-				    0x8008+txit*4, false, false,
-				    chars("", "usart%d transmit complete", id), 20*10+2));
-  uc->it_sources->add(new cl_it_src(uc, rxit,
-				    regs[cr2], 0x20,
-				    regs[sr], 0x20,
-				    0x8008+rxit*4, false, false,
-				    chars("", "usart%d receive", id), 20*10+3));
+  uc->it_sources->add(is= new cl_it_src(uc, txit,
+					regs[cr2], 0x80,
+					regs[sr], 0x80,
+					0x8008+txit*4, false, false,
+					chars("", "usart%d transmit register empty", id), 20*10+1));
+  is->init();
+  uc->it_sources->add(is= new cl_it_src(uc, txit,
+					regs[cr2], 0x40,
+					regs[sr], 0x40,
+					0x8008+txit*4, false, false,
+					chars("", "usart%d transmit complete", id), 20*10+2));
+  is->init();
+  uc->it_sources->add(is= new cl_it_src(uc, rxit,
+					regs[cr2], 0x20,
+					regs[sr], 0x20,
+					0x8008+rxit*4, false, false,
+					chars("", "usart%d receive", id), 20*10+3));
+  is->init();
 
   sr_read= false;
-  /*
-  cl_var *v;
-  chars pn(id_string);
-  pn.append("%d_", id);
-  uc->vars->add(v= new cl_var(pn+chars("on"), cfg, serconf_on));
-  uc->vars->add(v= new cl_var(pn+chars("check_often"), cfg, serconf_check_often));
-  v->init();
-  */
+
   return(0);
 }
 
@@ -131,14 +126,6 @@ cl_serial::init(void)
 void
 cl_serial::new_hw_added(class cl_hw *new_hw)
 {
-  /*  if (new_hw->cathegory == HW_TIMER &&
-      new_hw->id == 2)
-    {
-      there_is_t2= DD_TRUE;
-      t_mem d= sfr->get(T2CON);
-      t2_baud= d & (bmRCLK | bmTCLK);
-    }
-  */
 }
 
 void
@@ -154,7 +141,7 @@ cl_serial::read(class cl_memory_cell *cell)
       if (sr_read)
 	regs[sr]->set_bit0(0x1f);
       regs[sr]->set_bit0(0x20);
-      //printf("** read DR=0x%02x\n", s_in);
+      cfg_set(serconf_able_receive, 1);
       return s_in;
     }
   sr_read= (cell == regs[sr]);
@@ -165,16 +152,16 @@ cl_serial::read(class cl_memory_cell *cell)
 void
 cl_serial::write(class cl_memory_cell *cell, t_mem *val)
 {
-  //printf("** write 0x%02x,'%c'\n", *val, *val);
-  
   if (conf(cell, val))
     return;
   if (cell == regs[sr])
     {
       u8_t v= cell->get();
       if ((*val & 0x40) == 0)
-	v&= ~0x40;
-      *val= v;
+	{
+	  v&= ~0x40;
+	  *val= v;
+	}
     }
   else
     {
@@ -182,19 +169,16 @@ cl_serial::write(class cl_memory_cell *cell, t_mem *val)
       if ((cell == regs[brr1]) ||
 	  (cell == regs[brr2]))
 	{
-	  //printf("** BRR1,2 %x\n", *val);
 	  pick_div();
 	}
       else if ((cell == regs[cr1]) ||
 	       (cell == regs[cr2]))
 	{
-	  //printf("** CR1,2 %x\n", *val);
 	  pick_ctrl();
 	}
   
       else if (cell == regs[dr])
 	{
-	  //printf("** DR %x txd=%c\n", *val, *val);
 	  s_txd= *val;
 	  s_tx_written= true;
 	  show_writable(false);
@@ -261,13 +245,8 @@ cl_serial::tick(int cycles)
   if (s_sending &&
       (s_tr_bit >= bits))
     {
-      //printf("** sent %c\n", s_out);
       s_sending= false;
-      //if (io->fout)
-	{
-	  io->dd_printf("%c", s_out);
-	  //io->flush();
-	}
+      io->dd_printf("%c", s_out);
       s_tr_bit-= bits;
       if (s_tx_written)
 	restart_send();
@@ -278,8 +257,11 @@ cl_serial::tick(int cycles)
       io->get_fin() &&
       !s_receiving)
     {
-      //if (io->fin->input_avail())
-      //io->proc_input(0);
+      if (cfg_get(serconf_check_often))
+	{
+	  if (io->input_avail())
+	    io->proc_input(0);
+	}
       if (input_avail)
 	{
 	  s_receiving= true;
@@ -291,7 +273,6 @@ cl_serial::tick(int cycles)
   if (s_receiving &&
       (s_rec_bit >= bits))
     {
-      //if (fin->read(&c, 1) == 1)
 	{
 	  c= input;
 	  input_avail= false;
@@ -308,7 +289,6 @@ cl_serial::tick(int cycles)
 void
 cl_serial::start_send()
 {
-  //printf("** start_send ten=%d %c\n", ten, s_txd);
   if (ten)
     {
       s_out= s_txd;
@@ -322,7 +302,6 @@ cl_serial::start_send()
 void
 cl_serial::restart_send()
 {
-  //printf("** restart_send ten=%d %c\n", ten, s_txd);
   if (ten)
     {
       s_out= s_txd;
@@ -344,6 +323,7 @@ void
 cl_serial::received()
 {
   set_dr(s_in);
+  cfg_write(serconf_received, s_in);
   if (regs[sr]->get() & 0x20)
     regs[sr]->set_bit1(0x08); // overrun
   show_readable(true);
@@ -353,7 +333,6 @@ void
 cl_serial::reset(void)
 {
   int i;
-  //printf("** reset\n");
   regs[sr]->set(0xc0);
   for (i= 2; i < 12; i++)
     regs[i]->set(0);
@@ -380,7 +359,6 @@ cl_serial::pick_div()
   u8_t b2= regs[brr2]->get();
   div= ((((b2&0xf0)<<4) + b1)<<4) + (b2&0xf);
   mcnt= 0;
-  //printf("pick_div %d\n", div);
 }
 
 void
@@ -395,7 +373,6 @@ cl_serial::pick_ctrl()
   s_rec_bit= s_tr_bit= 0;
   s_receiving= false;
   s_tx_written= false;
-  //printf("pick_ctrl en=%d ten=%d ren=%d\n", en, ten, ren);
 }
 
 void
@@ -403,53 +380,49 @@ cl_serial::show_writable(bool val)
 {
   if (val)
     // TXE=1
-    regs[sr]->set_bit1(0x80);
+    regs[sr]->write_bit1(0x80);
   else
     // TXE=0
-    regs[sr]->set_bit0(0x80);
-  //printf("** TXE=%d sr=%x\n", val, regs[sr]->get());
+    regs[sr]->write_bit0(0x80);
 }
 
 void
 cl_serial::show_readable(bool val)
 {
   if (val)
-    regs[sr]->set_bit1(0x20);
+    regs[sr]->write_bit1(0x20);
   else
-    regs[sr]->set_bit0(0x20);
-  //printf("** RX=%d sr=%x\n", val, regs[sr]->get());
+    regs[sr]->write_bit0(0x20);
 }
 
 void
 cl_serial::show_tx_complete(bool val)
 {
   if (val)
-    regs[sr]->set_bit1(0x40);
+    regs[sr]->write_bit1(0x40);
   else
-    regs[sr]->set_bit0(0x40);
-  //printf("** TC=%d sr=%x\n", val, regs[sr]->get());
+    regs[sr]->write_bit0(0x40);
 }
 
 void
 cl_serial::show_idle(bool val)
 {
   if (val)
-    regs[sr]->set_bit1(0x10);
+    regs[sr]->write_bit1(0x10);
   else
-    regs[sr]->set_bit0(0x10);
+    regs[sr]->write_bit0(0x10);
 }
 
 void
 cl_serial::set_dr(t_mem val)
 {
   regs[dr]->set(val);
-  //printf("** DR<- %x %c\n", val, val);
 }
 
 void
 cl_serial::print_info(class cl_console_base *con)
 {
-  con->dd_printf("%s[%d] %s\n", id_string, id, on?"on":"off");
+  con->dd_printf("%s[%d] at 0x%06x %s\n", id_string, id, base, on?"on":"off");
   con->dd_printf("clk %s\n", clk_enabled?"enabled":"disabled");
   con->dd_printf("Input: ");
   class cl_f *fin= io->get_fin(), *fout= io->get_fout();

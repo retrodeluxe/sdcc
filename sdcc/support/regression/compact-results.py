@@ -1,4 +1,6 @@
-import sys, re
+from __future__ import print_function
+
+import sys, re, io
 import string
 
 """Simple script that scans all of the test suite results text fed in
@@ -6,7 +8,11 @@ through stdin and summarises the total number of failures, test
 points, and test cases."""
 
 # Read in everything
-lines = sys.stdin.readlines()
+if sys.version_info[0]<3:
+    safe_stdin = sys.stdin
+else:
+    safe_stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="latin-1")
+lines = safe_stdin.readlines()
 
 found = False
 for line in lines:
@@ -45,7 +51,7 @@ for line in lines:
 
     base = name
     m = re.match(r'([^/]*)/([^/]*)/([^/]*)/(.*)$', name)
-    if (m >= 3):
+    if (m):
         base = m.group(3)
 
     # '--- Summary: f/t/c: ...', where f = # failures, t = # test points,
@@ -54,14 +60,14 @@ for line in lines:
         try:
             (summary, data, rest) = re.split(r':', line)
             (nfailures, ntests, ncases) = re.split(r'/', data)
-            tests = tests + string.atof(ntests)
-            cases = cases + string.atof(ncases)
+            tests = tests + float(ntests)
+            cases = cases + float(ncases)
         except ValueError:
-            print "Bad summary line:", line
+            print("Bad summary line:", line)
             nfailures = '1'
-        failures = failures + string.atof(nfailures)
-        if (string.atof(nfailures)):
-            print "Failure: %s" % name
+        failures = failures + float(nfailures)
+        if (float(nfailures)):
+            print("Failure: %s" % name)
 
     # '--- Simulator: b/t: ...', where b = # bytes, t = # ticks
     if (re.search(r'^--- Simulator:', line)):
@@ -69,18 +75,18 @@ for line in lines:
             (simulator, data, rest) = re.split(r':', line)
             (nbytes, nticks) = re.split(r'/', data)
         except ValueError:
-            print "Bad simulator line:", line
+            print("Bad simulator line:", line)
         else:
-            bytes = bytes + string.atof(nbytes)
-            ticks = ticks + string.atof(nticks)
+            bytes = bytes + float(nbytes)
+            ticks = ticks + float(nticks)
 
     # Stop at 0x000228: (106) Invalid instruction 0x00fd
     if (re.search(r'Invalid instruction', line) or re.search(r'unknown instruction', line)):
         invalid += 1;
-        print "Invalid instruction: %s" % name
+        print("Invalid instruction: %s" % name)
 
-print "%-35.35s" % base,
+print("%-35.35s" % base, end=' ')
 
 if (invalid > 0):
-    print "%d invalid instructions," % invalid,
-print "(f: %2.0f, t:%4.0f, c: %2.0f, b: %6.0f, T: %8.0f)" % (failures, tests, cases, bytes, ticks)
+    print("%d invalid instructions," % invalid, end=' ')
+print("(f: %2.0f, t:%4.0f, c: %2.0f, b: %6.0f, T: %8.0f)" % (failures, tests, cases, bytes, ticks))

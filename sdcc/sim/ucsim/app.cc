@@ -54,6 +54,7 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include "cmd_getcl.h"
 #include "cmd_setcl.h"
 #include "newcmdposixcl.h"
+#include "cmdlexcl.h"
 
 bool jaj= false;
 
@@ -111,9 +112,7 @@ cl_app::run(void)
   bool g_opt= false;
   unsigned int cyc= 0;
   enum run_states rs= rs_config;
-  
-  
-  
+    
   while (!done)
     {
       if ((rs == rs_config) &&
@@ -123,17 +122,16 @@ cl_app::run(void)
 	}
       if (rs == rs_read_files)
 	{
-	  if (sim->uc != NULL)
+	  if (sim && (sim->uc != NULL))
 	    {
 	      int i;
 	      for (i= 0; i < in_files->count; i++)
 		{
 		  char *fname= (char *)(in_files->at(i));
 		  long l;
-		  if ((l= sim->uc->read_hex_file(fname)) >= 0)
+		  if ((l= sim->uc->read_file(fname, NULL)) >= 0)
 		    {
-		      commander->all_printf("%ld words read from %s\n",
-					    l, fname);
+		      ///*commander->all_printf*/printf("%ld words read from %s\n", l, fname);
 		    }
 		}
 	    }
@@ -167,18 +165,20 @@ cl_app::run(void)
 		}
 	      sim->step();
 	      if (jaj && commander->frozen_console)
-		sim->uc->print_regs(commander->frozen_console),
-		  commander->frozen_console->dd_printf("\n");
+		{
+		  sim->uc->print_regs(commander->frozen_console),
+		    commander->frozen_console->dd_printf("\n");
+		}
             }
 	  else
 	    {
 	      if (commander->input_avail())
-		done= commander->proc_input();
-	      //commander->wait_input();
-	      //done= commander->proc_input();
+		done = commander->proc_input();
+              else
+                loop_delay();
+
 	      if (sim->uc)
 		sim->uc->touch();
-	      loop_delay();
 	    }
 	  if (sim->state & SIM_QUIT)
 	    done= 1;
@@ -228,15 +228,15 @@ print_help(char *name)
      "                  port=nr   Use localhost:nr as server for serial line\n"
      "  -I options   `options' is a comma separated list of options according to\n"
      "               simulator interface. Known options are:\n"
-     "                 if=memory[address]  turn on interface on given memory location"
-     "                 in=file             specify input file for IO"
-     "                 out=file            spacify output file forr IO"
+     "                 if=memory[address]  turn on interface on given memory location\n"
+     "                 in=file             specify input file for IO\n"
+     "                 out=file            specify output file forr IO\n"
      "  -p prompt    Specify string for prompt\n"
      "  -P           Prompt is a null ('\\0') character\n"
      "  -g           Go, start simulation\n"
      "  -G           Go, start simulation, quit on stop\n"
      "  -a nr        Specify size of variable space (default=256)\n"
-     "  -w           Writable flash"
+     "  -w           Writable flash\n"
      "  -V           Verbose mode\n"
      "  -v           Print out version number and quit\n"
      "  -H           Print out types of known CPUs and quit\n"
@@ -642,13 +642,56 @@ cl_app::get_uc(void)
 
 
 /* Command handling */
-
+/*
 class cl_cmd *
 cl_app::get_cmd(class cl_cmdline *cmdline)
 {
   return(0);
 }
+*/
+long
+cl_app::eval(chars expr)
+{
+  expr_result= 0;
+  uc_yy_set_string_to_parse((char*)expr);
+  yyparse();
+  uc_yy_free_string_to_parse();
+  return expr_result;
+}
 
+void
+cl_app::exec(chars line)
+{
+  class cl_console_base *c= commander->frozen_console;
+  if (c == NULL)
+    {
+      c= new cl_console_dummy();
+      c->init();
+    }
+  class cl_cmdline *cmdline= new cl_cmdline(this, (char*)line, c);
+  do
+    {
+      cmdline->init();
+      class cl_cmd *cm= commander->cmdset->get_cmd(cmdline, false/*c->is_interactive()*/);
+      if (cm)
+	{
+	  cm->work(this, cmdline, c);
+	}
+      else if (cmdline->get_name() != 0)
+	{
+	  char *e= cmdline->cmd;
+	  if (strlen(e) > 0)
+	    {
+	      long l= eval(e);
+	      c->dd_printf("%ld\n", l);
+	    }
+	}
+    }
+  while (cmdline->restart_at_rest());
+  delete cmdline;
+  if (c != commander->frozen_console)
+    delete c;
+}
 
 /*
  * Messages to broadcast

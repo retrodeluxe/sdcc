@@ -94,15 +94,14 @@ installdirs:
 
 # Creating dependencies
 # ---------------------
-dep: Makefile.dep
+dep: $(LOCAL_SOURCES) Makefile.dep
 
-Makefile.dep: $(SOURCES) $(LOCAL_SOURCES) $(srcdir)/*.h cmdpars.hh
+Makefile.dep: $(SOURCES) $(LOCAL_SOURCES) $(srcdir)/*.h cmdpars.hh cmdpars.cc
 	$(MAKEDEP) $(CPPFLAGS) $(SOURCES) $(LOCAL_SOURCES) >Makefile.dep
 
 -include Makefile.dep
 include $(srcdir)/clean.mk
 
-cmdpars.cc cmdpars.hh: cmdpars.y
 cmdlex.cc: cmdlex.l cmdpars.hh
 
 # My rules
@@ -119,10 +118,9 @@ $(top_builddir)/libcmd.a: $(OBJECTS) $(LOCAL_OBJECTS)
 
 cmdpars.hh: cmdpars.cc
 
-.y.cc:
-	rm -f $@ $*.hh
+cmdpars.cc: cmdpars.y
 	$(YACC) -d $<
-	mv y.tab.c $@
+	mv y.tab.c $*.cc
 	mv y.tab.h $*.hh
 
 .l.cc:

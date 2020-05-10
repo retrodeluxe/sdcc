@@ -27,8 +27,6 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 02111-1307, USA. */
 /*@1@*/
 
-/* $Id: inst.cc 519 2016-11-23 14:21:44Z drdani $ */
-
 #include "ddconfig.h"
 #include "stdio.h"
 #include <stdlib.h>
@@ -433,7 +431,7 @@ cl_stm8::inst_btjfbtjt(t_mem code, unsigned char prefix)
 int
 cl_stm8::inst_call(t_mem code, unsigned char prefix)
 {
-  int newPC = fetchea(code, prefix);
+  t_addr newPC = (PC & 0xff0000ul) + fetchea(code, prefix);
   push2(PC);
   PC = newPC;
 
@@ -726,7 +724,7 @@ cl_stm8::inst_inc(t_mem code, unsigned char prefix)
 int
 cl_stm8::inst_jp(t_mem code, unsigned char prefix)
 {
-  int newPC = fetchea(code, prefix);
+  t_addr newPC = (PC & 0xff0000ul) + fetchea(code, prefix);
   PC = newPC;
   return(resGO);
 }
@@ -793,12 +791,16 @@ cl_stm8::inst_jr(t_mem code, unsigned char prefix)
   if (code & 1)
     taken = ! taken;
 
-  ofs = fetch();
-  if (taken)
-    PC += ofs;
-  return(resGO);
-}
-
+
+  ofs = fetch();
+  if (taken)
+    {
+      PC += ofs;
+      tick(1);
+    }
+  return(resGO);
+}
+
 int
 cl_stm8::inst_lda(t_mem code, unsigned char prefix)
 {
@@ -823,12 +825,15 @@ cl_stm8::operandw(t_mem code, unsigned char prefix)
 
 int
 cl_stm8::inst_ldxy(t_mem code, unsigned char prefix)
-{
-  unsigned int operand;
-  u16_t *dest_ptr;
-  dest_ptr = (prefix == 0x90) ? &regs.Y : &regs.X;
-  if((prefix == 0x00 && code == 0x16) || (prefix == 0x91 && code == 0xce) || (prefix == 0x91 && code == 0xde)) dest_ptr = &regs.Y;
-
+{
+  unsigned int operand;
+  u16_t *dest_ptr;
+
+  tick(1);
+
+  dest_ptr = (prefix == 0x90) ? &regs.Y : &regs.X;
+  if((prefix == 0x00 && code == 0x16) || (prefix == 0x91 && code == 0xce) || (prefix == 0x91 && code == 0xde)) dest_ptr = &regs.Y;
+
   switch((code & 0xf0) >> 4) {
      case 0xa: operand = fetch2(); break; // Immediate
      case 0xb: operand = get2(fetch()); break; // Short
@@ -901,12 +906,14 @@ cl_stm8::inst_lddst(t_mem code, unsigned char prefix)
 int
 cl_stm8::inst_ldxydst(t_mem code, unsigned char prefix)
 {
-  /* ldw dst, REG */
-  unsigned int opaddr, operand;
-
-  switch ((((code & 0xf0) | (prefix << 8)) >> 4) & 0xfff)
-    {
-      case 0x00b:
+  /* ldw dst, REG */
+  unsigned int opaddr, operand;
+
+  tick(1);
+
+  switch ((((code & 0xf0) | (prefix << 8)) >> 4) & 0xfff)
+    {
+      case 0x00b:
       case 0x00c:
       case 0x92c:
       case 0x72c:

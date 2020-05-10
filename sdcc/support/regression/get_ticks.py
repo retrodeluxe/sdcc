@@ -1,11 +1,15 @@
-import sys, re
+import sys, re, io
 import string
 
 """Simple script that scans all of the simulator output text fed in
 through stdin and summarises the total number of system clock ticks."""
 
 # Read in everything
-lines = sys.stdin.readlines()
+if sys.version_info[0]<3:
+    safe_stdin = sys.stdin
+else:
+    safe_stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="latin-1")
+lines = safe_stdin.readlines()
 
 # Declare globals
 bytes = 0
@@ -17,7 +21,7 @@ for line in lines:
         (data, post) = re.split(r'words', line, 1)
         data = re.sub(r'[^0-9]',' ',data).strip().split();
         if len(data)>0:
-          bytes = string.atoi(data[-1])
+          bytes = int(data[-1])
         else:
           bytes = 0 # wrong size, but better than blowing up
 
@@ -26,6 +30,6 @@ for line in lines:
     if (re.search(r'^Total time', line)):
         (pre, data) = re.split(r'\(', line)
         (nticks, post) = re.split(r' ', data)
-        ticks = string.atoi(nticks)
+        ticks = int(nticks)
 
-print "\n--- Simulator: %d/%d: %d bytes, %d ticks" % (bytes, ticks, bytes, ticks)
+print("\n--- Simulator: %d/%d: %d bytes, %d ticks" % (bytes, ticks, bytes, ticks))

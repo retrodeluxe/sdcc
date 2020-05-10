@@ -4,9 +4,15 @@
 
 #include <testfwk.h>
 
+#ifdef __SDCC_stm8
+#define ADDRESS 0x1000
+#else
+#define ADDRESS 0xF000
+#endif
+
 void foo(void)
 {
-  ((unsigned char __xdata *)0xF000)[100] = 0x12;
+  ((unsigned char __xdata *)ADDRESS)[100] = 0x12;
 }
 
 /* bug 3034400: this  should not give a warning/error */
@@ -19,6 +25,7 @@ void testBug(void)
 {
 #ifdef __SDCC
   foo();
-  ASSERT (*(unsigned char __xdata *)(0xF064) == 0x12);
+  ASSERT (*(unsigned char __xdata *)(ADDRESS + 0x64) == 0x12);
 #endif
 }
+

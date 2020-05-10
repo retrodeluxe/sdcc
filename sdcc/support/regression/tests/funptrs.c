@@ -93,7 +93,6 @@ callViaPtr3Ansi(void (*fptr)(void))
 }
 
 
-
 void
 testFunPtr(void)
 {

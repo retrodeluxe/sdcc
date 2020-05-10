@@ -37,10 +37,18 @@ static char _defaultRules[] =
 #include "peeph.rul"
 };
 
+#define OPTION_SMALL_MODEL          "--model-small"
+#define OPTION_MEDIUM_MODEL         "--model-medium"
+#define OPTION_LARGE_MODEL          "--model-large"
+#define OPTION_HUGE_MODEL           "--model-huge"
 #define OPTION_STACK_SIZE       "--stack-size"
 
 static OPTION _mcs51_options[] =
   {
+    { 0, OPTION_SMALL_MODEL, NULL, "internal data space is used (default)"},
+    { 0, OPTION_MEDIUM_MODEL, NULL, "external paged data space is used"},
+    { 0, OPTION_LARGE_MODEL, NULL, "external data space is used"},
+    { 0, OPTION_HUGE_MODEL, NULL, "functions are banked, data in external space"},
     { 0, OPTION_STACK_SIZE,  &options.stack_size, "Tells the linker to allocate this space for stack", CLAT_INTEGER },
     { 0, "--parms-in-bank1", &options.parms_in_bank1, "use Bank1 for parameter passing"},
     { 0, "--pack-iram",      NULL, "Tells the linker to pack variables in internal ram (default)"},
@@ -163,18 +171,18 @@ _mcs51_finaliseOptions (void)
     case MODEL_SMALL:
       port->mem.default_local_map = data;
       port->mem.default_globl_map = data;
-      port->s.gptr_size = 3;
+      port->s.ptr_size = 3;
       break;
     case MODEL_MEDIUM:
       port->mem.default_local_map = pdata;
       port->mem.default_globl_map = pdata;
-      port->s.gptr_size = 3;
+      port->s.ptr_size = 3;
       break;
     case MODEL_LARGE:
     case MODEL_HUGE:
       port->mem.default_local_map = xdata;
       port->mem.default_globl_map = xdata;
-      port->s.gptr_size = 3;
+      port->s.ptr_size = 3;
       break;
     default:
       port->mem.default_local_map = data;
@@ -832,8 +840,8 @@ PORT mcs51_port =
     NULL,
     NULL,
   },
-  /* Sizes: char, short, int, long, long long, ptr, fptr, gptr, bit, float, max */
-  { 1, 2, 2, 4, 8, 1, 2, 3, 1, 4, 4 },
+  /* Sizes: char, short, int, long, long long, near ptr, far ptr, gptr, func ptr, banked func ptr, bit, float */
+  { 1, 2, 2, 4, 8, 1, 2, 3, 2, 3, 1, 4 },
   /* tags for generic pointers */
   { 0x00, 0x40, 0x60, 0x80 },   /* far, near, xstack, code */
   {

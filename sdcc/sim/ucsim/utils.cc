@@ -43,6 +43,8 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include "stypes.h"
 #include "pobjcl.h"
 
+#include "utils.h"
+
 
 int
 get_sub_opt(char **option, const char * const *tokens, char **valuep)
@@ -123,18 +125,10 @@ vformat_string(const char *format, va_list ap)
     msg = NULL;
   return(msg);
 #else
-#  ifdef HAVE_VSNPRINTF
   msg = (char*)malloc(80*25);
   vsnprintf(msg, 80*25, format, ap);
-  return(msg);
-#  else
-#    ifdef HAVE_VPRINTF
-  msg = (char*)malloc(80*25);
-  vsprintf(msg, format, ap); /* Dangerous */
-  return(msg);
-#    endif
-#  endif
 #endif
+  return(msg);
 }
 
 char *
@@ -216,6 +210,21 @@ case_string(enum letter_case lcase, char *str)
   return(s);
 }
 
+chars
+cbin(long data, int bits)
+{
+  long mask= 1;
+  chars c= "";
+  
+  mask= mask << ((bits >= 1)?(bits-1):0);
+  while (bits--)
+    {
+      c+= (data&mask)?'1':'0';
+      mask>>= 1;
+    }
+  return c;
+}
+
 /*char *
 case_string(enum letter_case lcase, const char *str)
 {
@@ -247,6 +256,24 @@ strispn(char *s, char c)
   return p-s;
 }
 
+/* Return true if "serach_in" string ends with string "what" */
+
+bool
+strend(char *search_in, char *what)
+{
+  if (!search_in ||
+      !what ||
+      !*search_in ||
+      !*what)
+    return false;
+  char *start= strstr(search_in, what);
+  if (start == NULL)
+    return false;
+  if (start[strlen(what)] == '\0')
+    return true;
+  return false;
+}
+
 bool
 valid_sym_name(char *s)
 {
@@ -263,6 +290,60 @@ valid_sym_name(char *s)
 	return false;
     }
   return true;
+}
+
+
+bool
+is_hex_file(class cl_f *f)
+{
+  char *n;
+  if (!f)
+    return false;
+  n= f->get_file_name();
+  if (!n ||
+      !*n)
+    return false;
+
+  if (strend(n, cchars(".ihx")) ||
+      strend(n, cchars(".hex")) ||
+      strend(n, cchars(".ihex")))
+    return true;
+
+  return false;
+}
+
+bool
+is_omf_file(class cl_f *f)
+{
+  char *n;
+  if (!f)
+    return false;
+  n= f->get_file_name();
+  if (!n ||
+      !*n)
+    return false;
+
+  if (strend(n, cchars(".omf")))
+    return true;
+
+  return false;
+}
+
+bool
+is_cdb_file(class cl_f *f)
+{
+  char *n;
+  if (!f)
+    return false;
+  n= f->get_file_name();
+  if (!n ||
+      !*n)
+    return false;
+
+  if (strend(n, cchars(".cdb")))
+    return true;
+
+  return false;
 }
 
 

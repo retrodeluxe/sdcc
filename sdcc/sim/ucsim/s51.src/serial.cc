@@ -111,24 +111,30 @@ void
 cl_serial::added_to_uc(void)
 {
   class cl_address_space *sfr= uc->address_space(MEM_SFR_ID);
-
-  uc->it_sources->add(new cl_it_src(uc, bmES,
-				    sfr->get_cell(IE), bmES,
-				    sfr->get_cell(SCON), bmTI,
-				    0x0023, false, false,
-				    "serial transmit", 6));
-  uc->it_sources->add(new cl_it_src(uc, bmES,
-				    sfr->get_cell(IE), bmES,
-				    sfr->get_cell(SCON), bmRI,
-				    0x0023, false, false,
-				    "serial receive", 6));
+  class cl_it_src *is;
+  
+  uc->it_sources->add(is= new cl_it_src(uc, bmES,
+					sfr->get_cell(IE), bmES,
+					sfr->get_cell(SCON), bmTI,
+					0x0023, false, false,
+					"serial transmit", 6));
+  is->init();
+  uc->it_sources->add(is= new cl_it_src(uc, bmES,
+					sfr->get_cell(IE), bmES,
+					sfr->get_cell(SCON), bmRI,
+					0x0023, false, false,
+					"serial receive", 6));
+  is->init();
 }
 
 t_mem
 cl_serial::read(class cl_memory_cell *cell)
 {
   if (cell == sbuf)
-    return(s_in);
+    {
+      cfg_set(serconf_able_receive, 1);
+      return(s_in);
+    }
   conf(cell, NULL);
   return(cell->get());
 }
@@ -319,6 +325,8 @@ cl_serial::tick(int cycles)
       //if (fin->read(&c, 1) == 1)
 	{
 	  c= input;
+	  uc->sim->app->debug("UART%d received %d,%c\n", id,
+			      c,isprint(c)?c:' ');
 	  input_avail= false;
 	  s_in= c;
 	  sbuf->set(s_in);
@@ -338,6 +346,7 @@ void
 cl_serial::received(int c)
 {
   scon->set_bit1(bmRI);
+  cfg_write(serconf_received, c);
 }
 
 void

@@ -17,7 +17,7 @@ DATA unsigned char dummy1, dummy2;
 
 void 
 testPrePostIncrement(void) 
-{ 
+{
     dummy2 = TxFifo.buffer[++TxFifo.OutPtr]; 
     dummy1 = RxFifo.buffer[RxFifo.OutPtr++];
 

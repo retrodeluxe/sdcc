@@ -98,19 +98,21 @@ enum cpu_type {
   CPU_51R	= 0x0010,
   CPU_89C51R	= 0x0020,
   CPU_251	= 0x0040,
-  CPU_DS390	= 0x0080,
-  CPU_DS390F	= 0x0100,
-  CPU_C521	= 0x0200,
-  CPU_517	= 0x0400,
-  CPU_F380	= 0x0800,
-  CPU_XC88X	= 0x1000,
+  CPU_DS320 	= 0x0080,
+  CPU_DS390	= 0x0100,
+  CPU_DS390F	= 0x0200,
+  CPU_C521	= 0x0400,
+  CPU_517	= 0x0800,
+  CPU_F380	= 0x1000,
+  CPU_XC88X	= 0x2000,
   
   CPU_ALL_51	= (CPU_51|CPU_31),
   CPU_ALL_52	= (CPU_52|CPU_32|CPU_51R|CPU_89C51R|CPU_251|
-		   CPU_DS390|CPU_DS390F|
+		   CPU_DS320|CPU_DS390|CPU_DS390F|
 		   CPU_C521|CPU_517|CPU_XC88X|
 		   CPU_F380),
-
+  CPU_ALL_DS3X0 = (CPU_DS320|CPU_DS390|CPU_DS390F),
+ 
   CPU_AVR	= 0x0001,
   CPU_ALL_AVR	= (CPU_AVR),
 
@@ -119,7 +121,8 @@ enum cpu_type {
   CPU_LR35902   = 0x0004,
   CPU_R2K       = 0x0008,
   CPU_R3KA      = 0x0010,
-  CPU_ALL_Z80   = (CPU_Z80|CPU_Z180|CPU_R2K|CPU_LR35902|CPU_R3KA),
+  CPU_EZ80	= 0x0020,
+  CPU_ALL_Z80   = (CPU_Z80|CPU_Z180|CPU_R2K|CPU_LR35902|CPU_R3KA|CPU_EZ80),
 
   CPU_XA	= 0x0001,
   CPU_ALL_XA	= (CPU_XA),
@@ -250,7 +253,7 @@ enum inst_result {
   resHALT	= 101,	/* Serious error, halt CPU */
   resINV_ADDR	= 102,	/* Invalid indirect address */
   resSTACK_OV	= 103,	/* Stack overflow */
-  resBREAKPOINT	= 104,	/* Breakpoint */
+  resBREAKPOINT	= 104,	/* Fetch Breakpoint */
   resUSER	= 105,	/* Stopped by user */
   resINV_INST	= 106,	/* Invalid instruction */
   resBITADDR	= 107,	/* Bit address is uninterpretable */
@@ -258,6 +261,7 @@ enum inst_result {
   resSTEP	= 109,	/* Step command done, no more exex needed */
   resSIMIF	= 110,	/* Stopped by simulated prog itself through sim interface */
   resNOT_DONE	= 111,	/* Intruction has not simulated */
+  resEVENTBREAK = 112,  /* Event breakpoint */
 };
   
 #define BIT_MASK(bitaddr) (1 << (bitaddr & 0x07))
@@ -311,6 +315,7 @@ enum hw_cath {
   HW_RESET	= 0x0100,
   HW_CLOCK	= 0x0200,
   HW_CALC	= 0x0400,
+  HW_FLASH	= 0x0800
 };
 
 // Events that can happen in peripherals

@@ -91,7 +91,7 @@ static builtins __ds390_builtins[] = {
     { "__builtin_inp","v",3,{"cx*","cx*","i"}},        /* void __builtin_inp        (xdata char *,xdata char *,int) */
     /* __builtin_inp - used to write to a memory mapped port, increment first pointer */
     { "__builtin_outp","v",3,{"cx*","cx*","i"}},       /* void __builtin_outp       (xdata char *,xdata char *,int) */
-    { "__builtin_swapw","us",1,{"us"}},                /* unsigned short __builtin_swapw (unsigned short) */
+    { "__builtin_swapw","Us",1,{"Us"}},                /* unsigned short __builtin_swapw (unsigned short) */
     { "__builtin_memcmp_x2x","c",3,{"cx*","cx*","i"}}, /* void __builtin_memcmp_x2x (xdata char *,xdata char *,int) */
     { "__builtin_memcmp_c2x","c",3,{"cx*","cp*","i"}}, /* void __builtin_memcmp_c2x (xdata char *,code  char *,int) */
     { NULL , NULL,0, {NULL}}                           /* mark end of table */
@@ -191,8 +191,9 @@ _ds390_finaliseOptions (void)
     }
   else
     {
-      port->s.fptr_size = 3;
-      port->s.gptr_size = 4;
+      port->s.far_ptr_size = 3;
+      port->s.funcptr_size = 3;
+      port->s.ptr_size = 4;
 
       port->stack.isr_overhead += 2;      /* Will save dpx on ISR entry. */
 
@@ -1026,8 +1027,8 @@ PORT ds390_port =
     NULL,
     NULL,
   },
-  /* Sizes: char, short, int, long, long long, ptr, fptr, gptr, bit, float, max */
-  { 1, 2, 2, 4, 8, 1, 2, 3, 1, 4, 4 },
+  /* Sizes: char, short, int, long, long long, near ptr, far ptr, gptr, bit, float */
+  { 1, 2, 2, 4, 8, 1, 2, 3, 2, 3, 1, 4 },
 
   /* tags for generic pointers */
   { 0x00, 0x40, 0x60, 0x80 },           /* far, near, xstack, code */
@@ -1156,13 +1157,14 @@ static void _tininative_finaliseOptions (void)
         options.model = MODEL_FLAT24 ;
         fprintf(stderr,"TININative supports only MODEL FLAT24\n");
     }
-    port->s.fptr_size = 3;
-    port->s.gptr_size = 4;
+    port->s.far_ptr_size = 3;
+    port->s.funcptr_size = 3;
+    port->s.ptr_size = 4;
 
     port->stack.isr_overhead += 2;      /* Will save dpx on ISR entry. */
 
     port->stack.call_overhead += 2;     /* This acounts for the extra byte
-                                         * of return addres on the stack.
+                                         * of return address on the stack.
                                          * but is ugly. There must be a
                                          * better way.
                                          */
@@ -1365,8 +1367,8 @@ PORT tininative_port =
     NULL,
     NULL,
   },
-  /* Sizes: char, short, int, long, long long, ptr, fptr, gptr, bit, float, max */
-  { 1, 2, 2, 4, 8, 1, 3, 3, 1, 4, 4 },
+  /* Sizes: char, short, int, long, long long, near ptr, far ptr, gptr, func ptr, banked func ptr, bit, float */
+  { 1, 2, 2, 4, 8, 1, 3, 3, 3, 3, 1, 4 },
   /* tags for generic pointers */
   { 0x00, 0x40, 0x60, 0x80 },           /* far, near, xstack, code */
 
@@ -1497,7 +1499,7 @@ _ds400_finaliseOptions (void)
     }
 
   // hackhack: we're a superset of the 390.
-  addSet(&preArgvSet, Safe_strdup("-DSDCC_ds390"));
+  addSet(&preArgvSet, Safe_strdup("-D__SDCC_ds390"));
   addSet(&preArgvSet, Safe_strdup("-D__ds390"));
 
   /* Hack-o-matic: if we are using the flat24 model,
@@ -1520,8 +1522,9 @@ _ds400_finaliseOptions (void)
     }
   else
     {
-      port->s.fptr_size = 3;
-      port->s.gptr_size = 4;
+      port->s.far_ptr_size = 3;
+      port->s.funcptr_size = 3;
+      port->s.ptr_size = 4;
 
       port->stack.isr_overhead += 2;      /* Will save dpx on ISR entry. */
 
@@ -1620,8 +1623,8 @@ PORT ds400_port =
     NULL,
     NULL,
   },
-  /* Sizes: char, short, int, long, long long, ptr, fptr, gptr, bit, float, max */
-  { 1, 2, 2, 4, 8, 1, 2, 3, 1, 4, 4 },
+  /* Sizes: char, short, int, long, long long, near ptr, far ptr, gptr, func ptr, banked func ptr, bit, float */
+  { 1, 2, 2, 4, 8, 1, 2, 3, 2, 3, 1, 4 },
 
   /* tags for generic pointers */
   { 0x00, 0x40, 0x60, 0x80 },           /* far, near, xstack, code */

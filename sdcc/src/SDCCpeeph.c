@@ -43,7 +43,7 @@ static int hashSymbolName (const char *name);
 static void buildLabelRefCountHash (lineNode * head);
 static void bindVar (int key, char **s, hTab ** vtab);
 
-static bool matchLine (char *, char *, hTab **);
+static bool matchLine (char *, const char *, hTab **);
 
 #define FBYNAME(x) static int x (hTab *vars, lineNode *currPl, lineNode *endPl, \
         lineNode *head, char *cmdLine)
@@ -418,7 +418,7 @@ FBYNAME (labelIsUncondJump)
     }
   else if (TARGET_IS_STM8)
     {
-      jpInst = "jp";
+      jpInst = (options.model == MODEL_LARGE ? "jpf" : "jp");
       jpInst2 = "jra";
     }
   len = strlen(jpInst);
@@ -638,7 +638,7 @@ FBYNAME (labelRefCountChange)
                 {
                   fprintf (stderr, "*** internal error: label %s may not get"
                           " negative refCount in %s peephole.\n",
-                           label, __FUNCTION__);
+                           label, __func__);
                 }
             }
             else
@@ -651,7 +651,7 @@ FBYNAME (labelRefCountChange)
         {
           fprintf (stderr, "*** internal error: var %d not bound"
                    " in peephole %s rule.\n",
-                   varNumber, __FUNCTION__);
+                   varNumber, __func__);
         }
     }
   else
@@ -671,51 +671,63 @@ FBYNAME (labelRefCountChange)
 ** not found, or var was a indirect/pointer addressing mode.
 */
 static bool
-notVolatileVariable(char *var, lineNode *currPl, lineNode *endPl)
+notVolatileVariable(const char *var, lineNode *currPl, lineNode *endPl)
 {
   char symname[SDCC_NAME_MAX + 1];
   char *p = symname;
-  char *vp = var;
+  const char *vp = var;
   lineNode *cl;
   operand *op;
   iCode *last_ic;
 
+  const bool global_not_volatile = currFunc ? !currFunc->funcUsesVolatile : false;
+
   /* Can't tell if indirect accesses are volatile or not, so
-  ** assume they are, just to be safe.
+  ** assume they are (if there is a volatile access in the function at all), just to be safe.
   */
   if (TARGET_IS_MCS51 || TARGET_IS_DS390 || TARGET_IS_DS400)
     {
       if (*var=='@')
-        return FALSE;
+        return global_not_volatile;
     }
   if (TARGET_Z80_LIKE)
     {
+      if (var[0] == '#')
+        return true;
+      if (var[0] == '(')
+        return global_not_volatile;
       if (strstr (var, "(bc)"))
-        return FALSE;
+        return global_not_volatile;
       if (strstr (var, "(de)"))
-        return FALSE;
+        return global_not_volatile;
       if (strstr (var, "(hl)"))
-        return FALSE;
+        return global_not_volatile;
       if (strstr (var, "(ix"))
-        return FALSE;
+        return global_not_volatile;
       if (strstr (var, "(iy"))
-        return FALSE;
+        return global_not_volatile;
     }
 
   if (TARGET_IS_STM8)
     {
+      if (var[0] == '#')
+        return true;
+      if (var[0] == '(')
+        return global_not_volatile;
       if (strstr (var, "(x)"))
-        return FALSE;
+        return global_not_volatile;
       if (strstr (var, "(y)"))
-        return FALSE;
+        return global_not_volatile;
       if (strstr (var, ", x)"))
-        return FALSE;
+        return global_not_volatile;
       if (strstr (var, ", y)"))
-        return FALSE;
+        return global_not_volatile;
       if (strstr (var, ", sp)"))
-        return FALSE;
+        return global_not_volatile;
       if (strchr (var, '[') && strchr (var, ']'))
-        return FALSE;
+        return global_not_volatile;
+      if (strstr(var, "0x") || strstr(var, "0X") || isdigit(var[0]))
+        return global_not_volatile;
     }
 
   /* Extract a symbol name from the variable */
@@ -730,7 +742,7 @@ notVolatileVariable(char *var, lineNode *currPl, lineNode *endPl)
       /* Nothing resembling a symbol name was found, so it can't
          be volatile
       */
-      return TRUE;
+      return true;
     }
 
   last_ic = NULL;
@@ -794,7 +806,7 @@ notVolatileVariable(char *var, lineNode *currPl, lineNode *endPl)
   }
 
   /* Couldn't find the symbol for some reason. Assume volatile. */
-  return FALSE;
+  return global_not_volatile;
 }
 
 /*  notVolatile:
@@ -815,7 +827,6 @@ FBYNAME (notVolatile)
 {
   int varNumber;
   char *var;
-  bool notvol;
   char *digitend;
   lineNode *cl;
   operand *op;
@@ -872,9 +883,8 @@ FBYNAME (notVolatile)
 
       if (var)
         {
-          notvol = notVolatileVariable (var, currPl, endPl);
-          if (!notvol)
-            return FALSE;
+          if (!notVolatileVariable (var, currPl, endPl))
+            return false;
         }
       else
         {
@@ -1149,7 +1159,7 @@ FBYNAME (notSimilar)
   if (!operands)
     {
       fprintf (stderr,
-               "*** internal error: notSame peephole restriction"
+               "*** internal error: notSimilar peephole restriction"
                " malformed: %s\n", cmdLine);
       return FALSE;
     }
@@ -1217,6 +1227,40 @@ FBYNAME (notSame)
 
   deleteSet (&operands);
   return TRUE;
+}
+
+/*-----------------------------------------------------------------*/
+/* same - Check if first operand matches any of the remaining      */
+/*-----------------------------------------------------------------*/
+FBYNAME (same)
+{
+    set *operands;
+    const char *match, *op;
+
+    operands = setFromConditionArgs(cmdLine, vars);
+
+    if (!operands)
+    {
+        fprintf(stderr,
+            "*** internal error: same peephole restriction"
+            " malformed: %s\n", cmdLine);
+        return FALSE;
+    }
+
+    operands = reverseSet(operands);
+
+    match = setFirstItem(operands);
+    for (op = setNextItem(operands); op; op = setNextItem(operands))
+    {
+        if (strcmp(match, op) == 0)
+        {
+            deleteSet(&operands);
+            return TRUE;
+        }
+    }
+
+    deleteSet(&operands);
+    return FALSE;
 }
 
 /*-----------------------------------------------------------------*/
@@ -1406,6 +1450,48 @@ FBYNAME (immdInRange)
     }
 }
 
+/*-----------------------------------------------------------------*/
+/* inSequence - Check that numerical constants are in sequence     */
+/*-----------------------------------------------------------------*/
+FBYNAME (inSequence)
+{
+  set *operands;
+  const char *op;
+  long seq, val, stride;
+
+  if ((operands = setFromConditionArgs(cmdLine, vars)) == NULL)
+    {
+      fprintf (stderr,
+               "*** internal error: inSequence peephole restriction"
+               " malformed: %s\n", cmdLine);
+      return FALSE;
+    }
+
+  operands = reverseSet(operands);
+
+  op = setFirstItem(operands);
+  if ((immdGet(op, &stride) == NULL) || ((op = setNextItem(operands)) == NULL))
+    {
+      fprintf (stderr,
+               "*** internal error: inSequence peephole restriction"
+               " malformed: %s\n", cmdLine);
+      return FALSE;
+    }
+
+  for (seq = LONG_MIN; op; op = setNextItem(operands))
+    {
+      if ((immdGet(op, &val) == NULL) || ((seq != LONG_MIN) && (val != seq+stride)))
+        {
+          deleteSet(&operands);
+          return FALSE;
+        }
+      seq = val;
+    }
+
+  deleteSet(&operands);
+  return TRUE;
+}
+
 static const struct ftab
 {
   char *fname;
@@ -1435,6 +1521,9 @@ ftab[] =                                            // sorted on the number of t
     "operandsNotRelated", operandsNotRelated        // 28
   },
   {
+    "same", same                                    // z88dk z80
+  },
+  {
     "labelJTInRange", labelJTInRange                // 13
   },
   {
@@ -1442,6 +1531,9 @@ ftab[] =                                            // sorted on the number of t
   },
   {
     "canAssign", canAssign                          // 8
+  },
+  {
+    "inSequence", inSequence                        // z88dk z80
   },
   {
     "optimizeReturn", optimizeReturn                // ? just a guess
@@ -1610,7 +1702,7 @@ newPeepRule (lineNode * match,
   else
     pr->cond = NULL;
 
-  pr->vars = newHashTable (100);
+  pr->vars = newHashTable (16);
 
   /* if root is empty */
   if (!rootRules)
@@ -1633,14 +1725,14 @@ newPeepRule (lineNode * match,
 /* getPeepLine - parses the peep lines                             */
 /*-----------------------------------------------------------------*/
 static void
-getPeepLine (lineNode ** head, char **bpp)
+getPeepLine (lineNode ** head, const char **bpp)
 {
   char lines[MAX_PATTERN_LEN];
   char *lp;
   int isComment;
 
   lineNode *currL = NULL;
-  char *bp = *bpp;
+  const char *bp = *bpp;
   while (1)
     {
 
@@ -1698,12 +1790,13 @@ getPeepLine (lineNode ** head, char **bpp)
 /* readRules - reads the rules from a string buffer                */
 /*-----------------------------------------------------------------*/
 static void
-readRules (char *bp)
+readRules (const char *bp)
 {
   char restart = 0, barrier = 0;
   char lines[MAX_PATTERN_LEN];
   size_t safetycounter;
-  char *lp, *rp;
+  char *lp;
+  const char *rp;
   lineNode *match;
   lineNode *replace;
   lineNode *currL = NULL;
@@ -1772,8 +1865,11 @@ top:
   getPeepLine (&replace, &bp);
 
   /* look for a 'if' */
-  while ((ISCHARSPACE (*bp) || *bp == '\n') && *bp)
-    bp++;
+  while ((ISCHARSPACE (*bp) || *bp == '\n' || (*bp == '/' && *(bp+1) == '/')) && *bp)
+    {
+      ++bp;
+      if (*bp == '/') while (*bp && *bp != '\n') ++bp;
+    }
 
   if (strncmp (bp, "if", 2) == 0)
     {
@@ -1838,7 +1934,7 @@ top:
 /* keyForVar - returns the numeric key for a var                   */
 /*-----------------------------------------------------------------*/
 static int
-keyForVar (char *d)
+keyForVar (const char *d)
 {
   int i = 0;
 
@@ -1902,23 +1998,29 @@ bindVar (int key, char **s, hTab ** vtab)
 /* matchLine - matches one line                                    */
 /*-----------------------------------------------------------------*/
 static bool
-matchLine (char *s, char *d, hTab ** vars)
+matchLine (char *s, const char *d, hTab ** vars)
 {
   if (!s || !(*s))
     return FALSE;
 
+  /* skip leading white spaces */
+  while (ISCHARSPACE (*s))
+    s++;
+  while (ISCHARSPACE (*d))
+    d++;
+
   while (*s && *d)
     {
       /* skip white space in both */
-      while (ISCHARSPACE (*s))
-        s++;
-      while (ISCHARSPACE (*d))
-        d++;
+      while (ISCHARSPACE(*s))
+          s++;
+      while (ISCHARSPACE(*d))
+          d++;
 
       /* if the destination is a var */
       if (*d == '%' && ISCHARDIGIT (*(d + 1)) && vars)
         {
-          char *v = hTabItemWithKey (*vars, keyForVar (d + 1));
+          const char *v = hTabItemWithKey (*vars, keyForVar (d + 1));
           /* if the variable is already bound
              then it MUST match with dest */
           if (v)
@@ -1935,24 +2037,30 @@ matchLine (char *s, char *d, hTab ** vars)
           d++;
           while (ISCHARDIGIT (*d))
             d++;
-
+        }
+      else if (ISCHARSPACE (*s) && ISCHARSPACE (*d)) /* whitespace sequences match any whitespace sequences */
+        {
           while (ISCHARSPACE (*s))
             s++;
           while (ISCHARSPACE (*d))
             d++;
         }
-
-      /* they should be an exact match other wise */
-      if (*s && *d)
+      else if (*s == ',' && *d == ',') /* Allow comman to match comma followed by whitespace */
+        {
+          s++, d++;
+          while (ISCHARSPACE (*s))
+            s++;
+          while (ISCHARSPACE (*d))
+            d++;
+        }
+      else if (*s && *d) /* they should be an exact match otherwise */
         {
           if (*s++ != *d++)
             return FALSE;
         }
-
     }
 
-  /* get rid of the trailing spaces
-     in both source & destination */
+  /* skip trailing whitespaces */
   if (*s)
     while (ISCHARSPACE (*s))
       s++;

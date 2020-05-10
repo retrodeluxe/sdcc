@@ -75,6 +75,8 @@ enum con_flags {
 #define DATALIST        "D"
 #define SY_BIT          'b'
 #define BIT             "b"
+#define SY_CELL		'c'
+#define CELL		"c"
 
 
 class cl_prompt_option: public cl_optref
@@ -107,13 +109,16 @@ class cl_console_base: public cl_base
   class cl_debug_option *debug_option;
   class cl_ustrings *lines_printed;
   class cl_cmd *last_command;
-  class cl_cmdline *last_cmdline;
+  //class cl_cmdline *last_cmdline;
+  chars last_cmd;
 
   char nl;
   chars lbuf;
 
   int tu_bg_color, tu_fg_color;
-  
+ public:
+    int prev_quit;
+
  public:
   cl_console_base(void);
   virtual ~cl_console_base(void);
@@ -164,7 +169,7 @@ class cl_console_base: public cl_base
   
   virtual bool input_active(void) const;
   //virtual bool accept_last(void) { return /*is_tty() ? DD_TRUE : DD_FALSE;*/flags&CONS_INTERACTIVE; }
-  virtual bool prevent_quit(void) { return true; }
+  virtual bool prevent_quit(void) { return (prev_quit>=0)?prev_quit:true; }
   
  private:
   int flags; // See CONS_XXXX
@@ -181,6 +186,26 @@ class cl_console_base: public cl_base
   class cl_app *app;
   char *prompt;
   int id;
+};
+
+class cl_console_dummy: public cl_console_base
+{
+ public:
+ cl_console_dummy(void): cl_console_base() {}
+
+  virtual class cl_console_base *clone_for_exec(char *fin) { return NULL; }
+
+  virtual void redirect(char *fname, char *mode) {}
+  virtual void un_redirect(void) {}
+  virtual bool is_tty(void) const { return false; }
+  virtual bool is_eof(void) const { return false; }
+  virtual bool input_avail(void) { return false; }
+  virtual int read_line(void) { return 0; }
+  virtual class cl_f *get_fout(void) { return NULL; }
+  virtual class cl_f *get_fin(void) { return NULL; }
+  virtual void drop_files(void) {}
+  virtual void close_files(void) {}
+  virtual void replace_files(bool close_old, cl_f *new_in, cl_f *new_out) {}
 };
 
 /*

@@ -22,6 +22,7 @@ testFptr(void)
   char b = 10;
   a      = 10;
   s.c    = 10;
+
   func_ptr=func;
   
   // works as expected

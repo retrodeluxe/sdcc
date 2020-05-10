@@ -31,6 +31,7 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include <stdio.h>
 #include <stdarg.h>
 
+#include "charscl.h"
 #include "pobjcl.h"
 
 
@@ -148,14 +149,17 @@ class cl_f: public cl_base
   virtual void changed(void);
   virtual int close(void);
   virtual int stop_use(void);
-
+  virtual bool opened(void) { return file_id >= 0; }
+  
   virtual char *get_file_name() { return file_name; };
+  virtual char *get_fname() { return file_name; };
   virtual class cl_f *get_echo_to() { return echo_to; }
  protected:
   virtual int put(int c);
   virtual int get(void);
+  virtual int free_place(void);
   virtual int finish_esc(int k);
-  virtual int process_telnet(char ci);
+  virtual int process_telnet(unsigned char ci);
   virtual int process_esc(char c);
   virtual int process_csi(void);
   virtual int process(char c);
@@ -165,7 +169,9 @@ class cl_f: public cl_base
  public:
   virtual int input_avail(void);
   virtual int read(int *buf, int max);
-
+  virtual int get_c(void);
+  virtual chars get_s(void);
+  
  public:
   //FILE *f(void) { return file_f; };
   int id(void) { return file_id; };
@@ -210,7 +216,7 @@ class cl_f: public cl_base
   //virtual int connect(chars host, int to_port);
 };
 
-extern void deb(const char *format, ...);
+//extern void deb(const char *format, ...);
 
 extern int mk_srv_socket(int port);
 

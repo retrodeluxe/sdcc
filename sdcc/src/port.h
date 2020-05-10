@@ -25,6 +25,7 @@
 #define TARGET_ID_S08      15
 #define TARGET_ID_STM8     16
 #define TARGET_ID_TLCS90   17
+#define TARGET_ID_EZ80_Z80 18
 
 /* Macro to test the target we are compiling for.
    Can only be used after SDCCmain has defined the port
@@ -41,12 +42,13 @@
 #define TARGET_IS_R3KA     (port->id == TARGET_ID_R3KA)
 #define TARGET_IS_GBZ80    (port->id == TARGET_ID_GBZ80)
 #define TARGET_IS_TLCS90   (port->id == TARGET_ID_TLCS90)
+#define TARGET_IS_EZ80_Z80 (port->id == TARGET_ID_EZ80_Z80)
 #define TARGET_IS_HC08     (port->id == TARGET_ID_HC08)
 #define TARGET_IS_S08      (port->id == TARGET_ID_S08)
 #define TARGET_IS_STM8     (port->id == TARGET_ID_STM8)
 
 #define TARGET_MCS51_LIKE  (TARGET_IS_MCS51 || TARGET_IS_DS390 || TARGET_IS_DS400)
-#define TARGET_Z80_LIKE    (TARGET_IS_Z80 || TARGET_IS_Z180 || TARGET_IS_GBZ80 || TARGET_IS_R2K || TARGET_IS_R3KA || TARGET_IS_TLCS90)
+#define TARGET_Z80_LIKE    (TARGET_IS_Z80 || TARGET_IS_Z180 || TARGET_IS_GBZ80 || TARGET_IS_R2K || TARGET_IS_R3KA || TARGET_IS_TLCS90 || TARGET_IS_EZ80_Z80)
 #define TARGET_IS_RABBIT   (TARGET_IS_R2K || TARGET_IS_R3KA)
 #define TARGET_HC08_LIKE   (TARGET_IS_HC08 || TARGET_IS_S08)
 #define TARGET_PIC_LIKE    (TARGET_IS_PIC14 || TARGET_IS_PIC16)
@@ -105,7 +107,7 @@ typedef struct
     int supported_models;
     int default_model;
     /** return the model string, used as library destination;
-        port->taget is used as model string if get_model is NULL */
+        port->target is used as model string if get_model is NULL */
     const char *(*get_model) (void);
   }
   general;
@@ -168,15 +170,16 @@ typedef struct
   {
     int char_size;
     int short_size;
-    unsigned int int_size;
+    int int_size;
     int long_size;
     int longlong_size;
-    int ptr_size;               //near
-    int fptr_size;              //far
-    int gptr_size;              //generic
+    int near_ptr_size;          // __near
+    int far_ptr_size;           // __far
+    int ptr_size;               // generic
+    int funcptr_size;
+    int banked_funcptr_size;
     int bit_size;
     int float_size;
-    int max_base_size;
   }
   s;
 
@@ -251,7 +254,6 @@ typedef struct
     int banked_overhead;
     /** 0 if sp points to last item pushed, 1 if sp points to next location to use */
     int offset;
-
   }
   stack;
 
@@ -428,6 +430,9 @@ extern PORT gbz80_port;
 #endif
 #if !OPT_DISABLE_TLCS90
 extern PORT tlcs90_port;
+#endif
+#if !OPT_DISABLE_EZ80_Z80
+extern PORT ez80_z80_port;
 #endif
 #if !OPT_DISABLE_AVR
 extern PORT avr_port;

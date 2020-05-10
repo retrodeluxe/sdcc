@@ -189,61 +189,61 @@ cl_z80::make_memories(void)
   address_spaces->add(regs16);
 
   class cl_var *v;
-  vars->add(v= new cl_var(cchars("A"), regs8, 0));
+  vars->add(v= new cl_var(cchars("A"), regs8, 0, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("F"), regs8, 1));
+  vars->add(v= new cl_var(cchars("F"), regs8, 1, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("B"), regs8, 2));
+  vars->add(v= new cl_var(cchars("B"), regs8, 2, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("C"), regs8, 3));
+  vars->add(v= new cl_var(cchars("C"), regs8, 3, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("D"), regs8, 4));
+  vars->add(v= new cl_var(cchars("D"), regs8, 4, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("E"), regs8, 5));
+  vars->add(v= new cl_var(cchars("E"), regs8, 5, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("H"), regs8, 6));
+  vars->add(v= new cl_var(cchars("H"), regs8, 6, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("L"), regs8, 7));
-  v->init();
-
-  vars->add(v= new cl_var(cchars("ALT_A"), regs8, 8));
-  v->init();
-  vars->add(v= new cl_var(cchars("ALT_F"), regs8, 9));
-  v->init();
-  vars->add(v= new cl_var(cchars("ALT_B"), regs8, 10));
-  v->init();
-  vars->add(v= new cl_var(cchars("ALT_C"), regs8, 11));
-  v->init();
-  vars->add(v= new cl_var(cchars("ALT_D"), regs8, 12));
-  v->init();
-  vars->add(v= new cl_var(cchars("ALT_E"), regs8, 13));
-  v->init();
-  vars->add(v= new cl_var(cchars("ALT_H"), regs8, 14));
-  v->init();
-  vars->add(v= new cl_var(cchars("ALT_L"), regs8, 15));
+  vars->add(v= new cl_var(cchars("L"), regs8, 7, ""));
   v->init();
 
-  vars->add(v= new cl_var(cchars("AF"), regs16, 0));
+  vars->add(v= new cl_var(cchars("ALT_A"), regs8, 8, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("BC"), regs16, 1));
+  vars->add(v= new cl_var(cchars("ALT_F"), regs8, 9, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("DE"), regs16, 2));
+  vars->add(v= new cl_var(cchars("ALT_B"), regs8, 10, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("HL"), regs16, 3));
+  vars->add(v= new cl_var(cchars("ALT_C"), regs8, 11, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("IX"), regs16, 4));
+  vars->add(v= new cl_var(cchars("ALT_D"), regs8, 12, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("IY"), regs16, 5));
+  vars->add(v= new cl_var(cchars("ALT_E"), regs8, 13, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("SP"), regs16, 6));
+  vars->add(v= new cl_var(cchars("ALT_H"), regs8, 14, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("ALT_AF"), regs16, 7));
+  vars->add(v= new cl_var(cchars("ALT_L"), regs8, 15, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("ALT_BC"), regs16, 8));
+
+  vars->add(v= new cl_var(cchars("AF"), regs16, 0, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("ALT_DE"), regs16, 9));
+  vars->add(v= new cl_var(cchars("BC"), regs16, 1, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("ALT_HL"), regs16, 10));
+  vars->add(v= new cl_var(cchars("DE"), regs16, 2, ""));
+  v->init();
+  vars->add(v= new cl_var(cchars("HL"), regs16, 3, ""));
+  v->init();
+  vars->add(v= new cl_var(cchars("IX"), regs16, 4, ""));
+  v->init();
+  vars->add(v= new cl_var(cchars("IY"), regs16, 5, ""));
+  v->init();
+  vars->add(v= new cl_var(cchars("SP"), regs16, 6, ""));
+  v->init();
+  vars->add(v= new cl_var(cchars("ALT_AF"), regs16, 7, ""));
+  v->init();
+  vars->add(v= new cl_var(cchars("ALT_BC"), regs16, 8, ""));
+  v->init();
+  vars->add(v= new cl_var(cchars("ALT_DE"), regs16, 9, ""));
+  v->init();
+  vars->add(v= new cl_var(cchars("ALT_HL"), regs16, 10, ""));
   v->init();
 }
 
@@ -465,7 +465,7 @@ cl_z80::disass(t_addr addr, const char *sep)
           switch (*(b++))
             {
             case 'd': // d    jump relative target, signed? byte immediate operand
-              sprintf(temp, "#%d", (char)rom->get(addr+immed_offset));
+              sprintf(temp, "#%d", (signed char)(rom->get(addr+immed_offset)));
               ++immed_offset;
               break;
             case 'w': // w    word immediate operand
@@ -697,7 +697,7 @@ cl_z80::exec_inst(void)
       /* DD escapes out to 2 to 4 byte opcodes(DD included)
         with a variety of uses.  It can precede the CB escape
         sequence to extend CB codes with IX+immed_byte */
-    case 0xdd: return(inst_dd());
+    case 0xdd: return(inst_dd(0xdd));
     case 0xde: return(inst_sbc(code));
     case 0xdf: return(inst_rst(code));
 
@@ -717,7 +717,7 @@ cl_z80::exec_inst(void)
     case 0xeb: return(inst_ex(code));
     case 0xec: return(inst_call(code));
       /* ED escapes out to misc IN, OUT and other oddball opcodes */
-    case 0xed: return(inst_ed());
+    case 0xed: return(inst_ed(0xed));
     case 0xee: return(inst_xor(code));
     case 0xef: return(inst_rst(code));
 
@@ -739,7 +739,7 @@ cl_z80::exec_inst(void)
       /* DD escapes out to 2 to 4 byte opcodes(DD included)
         with a variety of uses.  It can precede the CB escape
         sequence to extend CB codes with IX+immed_byte */
-    case 0xfd: return(inst_fd());
+    case 0xfd: return(inst_fd(0xfd));
     case 0xfe: return(inst_cp(code));
     case 0xff: return(inst_rst(code));
     }

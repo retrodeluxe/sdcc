@@ -1,4 +1,4 @@
-/* sdccconf_in.h.  Generated from configure.in by autoheader.  */
+/* sdccconf_in.h.  Generated from configure.ac by autoheader.  */
 
 #ifndef SDCCCONF_HEADER
 #define SDCCCONF_HEADER
@@ -24,12 +24,21 @@
 /* XXX */
 #undef EXEC_PREFIX
 
+/* Define to 1 if you have the `backtrace_symbols_fd' function. */
+#undef HAVE_BACKTRACE_SYMBOLS_FD
+
 /* Define to 1 if you have the <boost/graph/adjacency_list.hpp> header file.
    */
 #undef HAVE_BOOST_GRAPH_ADJACENCY_LIST_HPP
 
+/* define if the compiler supports basic C++11 syntax */
+#undef HAVE_CXX11
+
 /* Define to 1 if you have the <endian.h> header file. */
 #undef HAVE_ENDIAN_H
+
+/* Define to 1 if you have the <gala/graph.h> header file. */
+#undef HAVE_GALA_GRAPH_H
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
@@ -46,11 +55,8 @@
 /* Define to 1 if you have the `mkstemp' function. */
 #undef HAVE_MKSTEMP
 
-/* Define to 1 if you have the `snprintf' function. */
-#undef HAVE_SNPRINTF
-
-/* Define to 1 if you have the <stdalign.h> header file. */
-#undef HAVE_STDALIGN_H
+/* Define to 1 if you have the `setrlimit' function. */
+#undef HAVE_SETRLIMIT
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -70,12 +76,6 @@
 /* Define to 1 if you have the `strndup' function. */
 #undef HAVE_STRNDUP
 
-/* Define to 1 if you have the <stx/btree_map.h> header file. */
-#undef HAVE_STX_BTREE_MAP_H
-
-/* Define to 1 if you have the <stx/btree_set.h> header file. */
-#undef HAVE_STX_BTREE_SET_H
-
 /* Define to 1 if you have the <sys/endian.h> header file. */
 #undef HAVE_SYS_ENDIAN_H
 
@@ -88,14 +88,11 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
+/* Define to 1 if you have the <treedec/combinations.hpp> header file. */
+#undef HAVE_TREEDEC_COMBINATIONS_HPP
+
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
-
-/* Define to 1 if you have the `vsnprintf' function. */
-#undef HAVE_VSNPRINTF
-
-/* Define to 1 if you have the `vsprintf' function. */
-#undef HAVE_VSPRINTF
 
 /* XXX */
 #undef INCLUDE_DIR_SUFFIX
@@ -120,6 +117,9 @@
 
 /* XXX */
 #undef OPT_DISABLE_DS400
+
+/* XXX */
+#undef OPT_DISABLE_EZ80_Z80
 
 /* XXX */
 #undef OPT_DISABLE_GBZ80
@@ -171,9 +171,6 @@
 
 /* XXX */
 #undef OPT_DISABLE_UCSIM
-
-/* Define to 1 to disable the XA51 port */
-#undef OPT_DISABLE_XA51
 
 /* XXX */
 #undef OPT_DISABLE_Z180
@@ -297,9 +294,6 @@
 
 /* XXX */
 #undef TYPE_WORD
-
-/* Define to 1 if c supports tags in unnamed struct. */
-#undef UNNAMED_STRUCT_TAG
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */

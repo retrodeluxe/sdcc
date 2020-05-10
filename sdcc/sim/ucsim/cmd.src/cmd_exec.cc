@@ -27,8 +27,6 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include <stdarg.h>
 #include "ddconfig.h"
 
-#include "cmdlexcl.h"
-
 // prj
 #include "i_string.h"
 #include "utils.h"
@@ -267,81 +265,8 @@ COMMAND_DO_WORK_APP(cl_help_cmd)
       if (!matches ||
 	  !cmd_found)
 	con->dd_printf("No such command.\n");
-      //return(false);
-      /*
-      int pari;
-      for (pari= 0; pari < cmdline->nuof_params(); pari++)
-	{
-	  class cl_cmd_arg *act_param;
-	  act_param= (class cl_cmd_arg *)(cmdline->param(pari));
-	  for (i= 0; i < cmdset->count; i++)
-	    {
-	      class cl_cmd *c= (class cl_cmd *)(cmdset->at(i));
-	      if (!c->name_match(act_param->s_value, false))
-		continue;
-	      if (c->short_help)
-		con->dd_printf("%s\n", c->short_help);
-	      else
-		con->dd_printf("%s\n", (char*)(c->names->at(0)));
-	      if (pari < cmdline->nuof_params()-1)
-		continue;
-	      cmdset= c->get_subcommands();
-	      if (!cmdset)
-		return(false);
-	    }
-	}
-      return(false);
-      */
     }
   return(false);
-  /*
-  if (cmdline->syntax_match(0, STRING)) {
-    matches= 0;
-    for (i= 0; i < cmdset->count; i++)
-      {
-	c= (class cl_cmd *)(cmdset->at(i));
-	if (c->name_match(parm->value.string.string, false))
-	  matches++;
-      }
-    if (!matches)
-      con->dd_printf("No such command\n");
-    else if (matches > 1)
-      for (i= 0; i < cmdset->count; i++)
-	{
-	  c= (class cl_cmd *)(cmdset->at(i));
-	  if (!c->name_match(parm->value.string.string, false))
-	    continue;
-	  if (c->short_help)
-	    con->dd_printf("%s\n", c->short_help);
-	  else
-	    con->dd_printf("%s\n", (char*)(c->names->at(0)));
-	}
-    else
-      for (i= 0; i < cmdset->count; i++)
-	{
-	  c= (class cl_cmd *)(cmdset->at(i));
-	  if (!c->name_match(parm->value.string.string, false))
-	    continue;
-	  if (c->short_help)
-	    con->dd_printf("%s\n", c->short_help);
-	  else
-	    con->dd_printf("%s\n", (char*)(c->names->at(0)));
-	  int names;
-	  con->dd_printf("Names of command:");
-	  for (names= 0; names < c->names->count; names++)
-	    con->dd_printf(" %s", (char*)(c->names->at(names)));
-	  con->dd_printf("\n");
-	  if (c->long_help)
-	    con->dd_printf("%s\n", c->long_help);
-	  else
-	    con->dd_printf("%s\n", (char*)(c->names->at(0)));
-	}
-  }
-  else
-    con->dd_printf("%s\n", short_help?short_help:"Error: wrong syntax");
-
-  return(0);
-  */
 }
 
 bool
@@ -445,16 +370,50 @@ COMMAND_DO_WORK_APP(cl_exec_cmd)
 COMMAND_DO_WORK_APP(cl_expression_cmd)
 {
   char *s= cmdline->cmd;
+  char *fmt= NULL;
+  int fmt_len= 0;
   if (!s ||
       !*s)
     return(false);
-  int i= strspn(s, " \t\v\n");
+  int i= strspn(s, " \t\v\n\r");
   s+= i;
   i= strspn(s, "abcdefghijklmnopqrstuvwxyz");
   s+= i;
-  uc_yy_set_string_to_parse(s);
-  yyparse();
-  uc_yy_free_string_to_parse();
+  i= strspn(s, " \t\v\n");
+  s+= i;
+  t_mem v= 0;
+  if (s && *s)
+    {
+      if (*s == '/')
+	{
+	  i= strcspn(s, " \t\v\n\r");
+	  fmt= s+1;
+	  fmt_len= i;
+	  s+= i;
+	  i= strspn(s, " \t\v\n\r");
+	  s+= i;
+	}
+      if (s && *s)
+	v= application->eval(s);
+      if (fmt)
+	{
+	  for (i= 0; i < fmt_len; i++)
+	    {
+	      switch (fmt[i])
+		{
+		case 'x': con->dd_printf("%lx\n", v); break;
+		case 'X': con->dd_printf("0x%lx\n", v); break;
+		case '0': con->dd_printf("0x%08lx\n", v); break;
+		case 'd': con->dd_printf("%ld\n", v); break;
+		case 'o': con->dd_printf("%lo\n", v); break;
+		case 'u': con->dd_printf("%lu\n", v); break;
+		case 'b': con->dd_printf("%s\n", (char*)cbin(v,8*sizeof(v))); break;
+		}
+	    }
+	}
+      else
+	con->dd_printf("%ld\n", v);
+    }
   return(false);
 }
 

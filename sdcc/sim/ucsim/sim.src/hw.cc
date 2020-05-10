@@ -53,6 +53,7 @@ cl_hw::cl_hw(class cl_uc *auc, enum hw_cath cath, int aid, const char *aid_strin
     id_string= strdup(aid_string);
   else
     id_string= strdup("unknown hw element");
+  set_name(id_string);
   char *s= (char*)malloc(strlen(get_name("hw"))+100);
   sprintf(s, "partners of %s", get_name("hw"));
   partners= new cl_list(2, 2, s);
@@ -199,6 +200,16 @@ cl_hw::register_cell(class cl_address_space *mem, t_addr addr)
   return mem->get_cell(addr);
 }
 
+class cl_memory_cell *
+cl_hw::register_cell(class cl_memory_cell *cell)
+{
+  if (cell)
+    {
+      cell->add_hw(this);
+    }
+  return cell;
+}
+
 void
 cl_hw::unregister_cell(class cl_memory_cell *the_cell)
 {
@@ -327,7 +338,7 @@ cl_hw::handle_input(int c)
       break;
     case 't'-'a'+1:
       uc->reset();
-      io->dd_printf("CPU reseted.");
+      io->dd_printf("CPU reset.");
       break;
     case 'q'-'a'+1:
       uc->sim->state|= SIM_QUIT;

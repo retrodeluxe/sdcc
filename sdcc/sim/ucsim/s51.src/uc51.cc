@@ -63,6 +63,410 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include "types51.h"
 
 
+
+/*
+ * Names of SFR cells
+ */
+
+static struct name_entry sfr_tab51[]=
+{
+  {CPU_F380,			  0xc7, "P4"},
+  
+  {CPU_251,                       0x84, "DPXL"},
+  {CPU_251|CPU_DS390|CPU_DS390F,  0x93, "DPX"},
+  {CPU_251,                       0xa8, "IE0"},
+  {CPU_251,                       0xb7, "IPH0"},
+  {CPU_251,                       0xb8, "IPL0"},
+  {CPU_251,                       0xbd, "SPH"},
+  {CPU_251,                       0xd1, "PSW1"},
+
+  {CPU_DS390|CPU_DS390F,          0x80, "P4"},
+  {CPU_ALL_DS3X0,                 0x84, "DPL1"},
+  {CPU_ALL_DS3X0,                 0x85, "DPH1"},
+  {CPU_ALL_DS3X0,                 0x86, "DPS"},
+  {CPU_ALL_DS3X0,                 0x8e, "CKCON"},
+  {CPU_DS390|CPU_DS390F,          0x91, "EXIF"},
+  {CPU_DS390|CPU_DS390F,          0x92, "P4CNT"},
+  {CPU_DS390|CPU_DS390F,          0x95, "DPX1"},
+  {CPU_DS390|CPU_DS390F,          0x96, "C0RMS0"},
+  {CPU_DS390|CPU_DS390F,          0x97, "C0RMS1"},
+  {CPU_DS390|CPU_DS390F,          0x98, "SCON0"},
+  {CPU_DS390|CPU_DS390F,          0x99, "SBUF0"},
+  {CPU_DS390|CPU_DS390F,          0x9b, "ESP"},
+  {CPU_DS390|CPU_DS390F,          0x9c, "AP"},
+  {CPU_DS390|CPU_DS390F,          0x9d, "ACON"},
+  {CPU_DS390|CPU_DS390F,          0x9e, "C0TMA0"},
+  {CPU_DS390|CPU_DS390F,          0x9f, "C0TMA1"},
+  {CPU_DS390|CPU_DS390F,          0xa1, "P5"},
+  {CPU_DS390|CPU_DS390F,          0xa2, "P5CNT"},
+  {CPU_DS390|CPU_DS390F,          0xa3, "C0C"},
+  {CPU_DS390|CPU_DS390F,          0xa4, "C0S"},
+  {CPU_DS390|CPU_DS390F,          0xa5, "C0IR"},
+  {CPU_DS390|CPU_DS390F,          0xa6, "C0TE"},
+  {CPU_DS390|CPU_DS390F,          0xa7, "C0RE"},
+  {CPU_DS390|CPU_DS390F,          0xa9, "SADDR0"},
+  {CPU_DS390|CPU_DS390F,          0xaa, "SADDR1"},
+  {CPU_DS390|CPU_DS390F,          0xab, "C0M1C"},
+  {CPU_DS390|CPU_DS390F,          0xac, "C0M2C"},
+  {CPU_DS390|CPU_DS390F,          0xad, "C0M3C"},
+  {CPU_DS390|CPU_DS390F,          0xae, "C0M4C"},
+  {CPU_DS390|CPU_DS390F,          0xaf, "C0M5C"},
+  {CPU_DS390|CPU_DS390F,          0xb3, "C0M6C"},
+  {CPU_DS390|CPU_DS390F,          0xb4, "C0M7C"},
+  {CPU_DS390|CPU_DS390F,          0xb5, "C0M8C"},
+  {CPU_DS390|CPU_DS390F,          0xb6, "C0M9C"},
+  {CPU_DS390|CPU_DS390F,          0xb7, "C0M10C"},
+  {CPU_DS390|CPU_DS390F,          0xb9, "SADEN0"},
+  {CPU_DS390|CPU_DS390F,          0xba, "SADEN1"},
+  {CPU_DS390|CPU_DS390F,          0xbb, "C0M11C"},
+  {CPU_DS390|CPU_DS390F,          0xbc, "C0M12C"},
+  {CPU_DS390|CPU_DS390F,          0xbd, "C0M13C"},
+  {CPU_DS390|CPU_DS390F,          0xbe, "C0M14C"},
+  {CPU_DS390|CPU_DS390F,          0xbf, "C0M15C"},
+  {CPU_DS390|CPU_DS390F,          0xc0, "SCON1"},
+  {CPU_DS390|CPU_DS390F,          0xc1, "SBUF1"},
+  {CPU_DS390|CPU_DS390F,          0xc4, "PMR"},
+  {CPU_DS390|CPU_DS390F,          0xc5, "STATUS"},
+  {CPU_DS390|CPU_DS390F,          0xc6, "MCON"},
+  {CPU_DS390|CPU_DS390F,          0xc7, "TA"},
+  {CPU_DS390|CPU_DS390F,          0xce, "COR"},
+  {CPU_DS390|CPU_DS390F,          0xd1, "MCNT0"},
+  {CPU_DS390|CPU_DS390F,          0xd2, "MCNT1"},
+  {CPU_DS390|CPU_DS390F,          0xd3, "MA"},
+  {CPU_DS390|CPU_DS390F,          0xd4, "MB"},
+  {CPU_DS390|CPU_DS390F,          0xd5, "MC"},
+  {CPU_DS390|CPU_DS390F,          0xd6, "C1RMS0"},
+  {CPU_DS390|CPU_DS390F,          0xd7, "C1RMS1"},
+  {CPU_DS390|CPU_DS390F,          0xd8, "WDCON"},
+  {CPU_DS390|CPU_DS390F,          0xde, "C1TMA0"},
+  {CPU_DS390|CPU_DS390F,          0xdf, "C1TMA1"},
+  {CPU_DS390|CPU_DS390F,          0xe3, "C1C"},
+  {CPU_DS390|CPU_DS390F,          0xe4, "C1S"},
+  {CPU_DS390|CPU_DS390F,          0xe5, "C11R"},
+  {CPU_DS390|CPU_DS390F,          0xe6, "C1TE"},
+  {CPU_DS390|CPU_DS390F,          0xe7, "C1RE"},
+  {CPU_DS390|CPU_DS390F,          0xe8, "EIE"},
+  {CPU_DS390|CPU_DS390F,          0xea, "MXAX"},
+  {CPU_DS390|CPU_DS390F,          0xeb, "C1M1C"},
+  {CPU_DS390|CPU_DS390F,          0xec, "C1M2C"},
+  {CPU_DS390|CPU_DS390F,          0xed, "C1M3C"},
+  {CPU_DS390|CPU_DS390F,          0xee, "C1M4C"},
+  {CPU_DS390|CPU_DS390F,          0xef, "C1M5C"},
+  {CPU_DS390|CPU_DS390F,          0xf3, "C1M6C"},
+  {CPU_DS390|CPU_DS390F,          0xf4, "C1M7C"},
+  {CPU_DS390|CPU_DS390F,          0xf5, "C1M8C"},
+  {CPU_DS390|CPU_DS390F,          0xf6, "C1M9C"},
+  {CPU_DS390|CPU_DS390F,          0xf7, "C1M10C"},
+  {CPU_DS390|CPU_DS390F,          0xfb, "C1M11C"},
+  {CPU_DS390|CPU_DS390F,          0xfc, "C1M12C"},
+  {CPU_DS390|CPU_DS390F,          0xfd, "C1M13C"},
+  {CPU_DS390|CPU_DS390F,          0xfe, "C1M14C"},
+  {CPU_DS390|CPU_DS390F,          0xff, "C1M15C"},
+
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x80, "P0"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x81, "SP"},
+  //{CPU_ALL_51|CPU_ALL_52|CPU_251, 0x82, "DPL"},
+  //{CPU_ALL_51|CPU_ALL_52|CPU_251, 0x83, "DPH"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x87, "PCON"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x88, "TCON"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x89, "TMOD"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x8a, "TL0"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x8b, "TL1"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x8c, "TH0"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x8d, "TH1"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x90, "P1"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x98, "SCON"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x99, "SBUF"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xa0, "P2"},
+  {CPU_ALL_51|CPU_ALL_52,         0xa8, "IE"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xb0, "P3"},
+  {CPU_ALL_51|CPU_ALL_52,         0xb8, "IP"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xd0, "PSW"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xe0, "ACC"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xf0, "B"},
+
+  {CPU_ALL_52|CPU_251,            0xc8, "T2CON"},
+  {CPU_ALL_52|CPU_251,            0xca, "RCAP2L"},
+  {CPU_ALL_52|CPU_251,            0xcb, "RCAP2H"},
+  {CPU_ALL_52|CPU_251,            0xcc, "TL2"},
+  {CPU_ALL_52|CPU_251,            0xcd, "TH2"},
+
+  {CPU_51R|CPU_89C51R,            0x8e, "AUXR"},
+  {CPU_51R|CPU_89C51R|CPU_251,    0xa6, "WDTRST"},
+  {CPU_51R|CPU_89C51R|CPU_251,    0xa9, "SADDR"},
+  {CPU_51R|CPU_89C51R,            0xb7, "IPH"},
+  {CPU_51R|CPU_89C51R|CPU_251,    0xb9, "SADEN"},
+  {CPU_51R|CPU_89C51R|CPU_251|\
+            CPU_DS390|CPU_DS390F, 0xc9, "T2MOD"}, /* fixme: isn't that CPU_ALL_52? */
+
+  {CPU_89C51R,                    0xa2, "AUXR1"},
+  {CPU_89C51R|CPU_251,            0xd8, "CCON"},
+  {CPU_89C51R|CPU_251,            0xd9, "CMOD"},
+  {CPU_89C51R|CPU_251,            0xda, "CCAPM0"},
+  {CPU_89C51R|CPU_251,            0xdb, "CCAPM1"},
+  {CPU_89C51R|CPU_251,            0xdc, "CCAPM2"},
+  {CPU_89C51R|CPU_251,            0xdd, "CCAPM3"},
+  {CPU_89C51R|CPU_251,            0xde, "CCAPM4"},
+  {CPU_89C51R|CPU_251,            0xe9, "CL"},
+  {CPU_89C51R|CPU_251,            0xea, "CCAP0L"},
+  {CPU_89C51R|CPU_251,            0xeb, "CCAP1L"},
+  {CPU_89C51R|CPU_251,            0xec, "CCAP2L"},
+  {CPU_89C51R|CPU_251,            0xed, "CCAP3L"},
+  {CPU_89C51R|CPU_251,            0xee, "CCAP4L"},
+  {CPU_89C51R|CPU_251,            0xf9, "CH"},
+  {CPU_89C51R|CPU_251,            0xfa, "CCAP0H"},
+  {CPU_89C51R|CPU_251,            0xfb, "CCAP1H"},
+  {CPU_89C51R|CPU_251,            0xfc, "CCAP2H"},
+  {CPU_89C51R|CPU_251,            0xfd, "CCAP3H"},
+  {CPU_89C51R|CPU_251,            0xfe, "CCAP4H"},
+
+  {CPU_F380, 0x8e, "CKCON"},
+  {CPU_F380, 0x8f, "PSCTL"},
+  {CPU_F380, 0x91, "TMR3CN"},
+  {CPU_F380, 0x91, "TMR4CN"},
+  {CPU_F380, 0x92, "TMR3RLL"},
+  {CPU_F380, 0x92, "TMR4RLL"},
+  {CPU_F380, 0x93, "TMR3RLH"},
+  {CPU_F380, 0x93, "TMR4RLH"},
+  {CPU_F380, 0x94, "TMR3L"},
+  {CPU_F380, 0x94, "TMR4L"},
+  {CPU_F380, 0x95, "TMR3H"},
+  {CPU_F380, 0x95, "TMR4H"},
+  {CPU_F380, 0x96, "USB0ADR"},
+  {CPU_F380, 0x97, "USB0DAT"},
+  {CPU_F380, 0x9a, "CPT1CN"},
+  {CPU_F380, 0x9b, "CPT0CN"},
+  {CPU_F380, 0x9c, "CPT1MD"},
+  {CPU_F380, 0x9d, "CPT0MD"},
+  {CPU_F380, 0x9e, "CPT1MX"},
+  {CPU_F380, 0x9f, "CPT0MX"},
+  {CPU_F380, 0xa1, "SPI0CFG"},
+  {CPU_F380, 0xa2, "SPI0CKR"},
+  {CPU_F380, 0xa3, "SPI0DAT"},
+  {CPU_F380, 0xa4, "P0MDOUT"},
+  {CPU_F380, 0xa5, "P1MDOUT"},
+  {CPU_F380, 0xa6, "P2MDOUT"},
+  {CPU_F380, 0xa7, "P3MDOUT"},
+  {CPU_F380, 0xa9, "CLKSEL"},
+  {CPU_F380, 0xaa, "EMI0CN"},
+  {CPU_F380, 0xac, "SBCON1"},
+  {CPU_F380, 0xae, "P4MDOUT"},
+  {CPU_F380, 0xaf, "PFE0CN"},
+  {CPU_F380, 0xb1, "OSCXCN"},
+  {CPU_F380, 0xb2, "OSCICN"},
+  {CPU_F380, 0xb3, "OSCICL"},
+  {CPU_F380, 0xb4, "SBRLL1"},
+  {CPU_F380, 0xb5, "SBRLH1"},
+  {CPU_F380, 0xb6, "FLSCL"},
+  {CPU_F380, 0xb7, "FLKEY"},
+  {CPU_F380, 0xb9, "CLKMUL"},
+  {CPU_F380, 0xb9, "SMBTC"},
+  {CPU_F380, 0xba, "AMX0N"},
+  {CPU_F380, 0xbb, "AMX0P"},
+  {CPU_F380, 0xbc, "ADC0CF"},
+  {CPU_F380, 0xbd, "ADC0L"},
+  {CPU_F380, 0xbe, "ADC0H"},
+  {CPU_F380, 0xbf, "SFRPAGE"},
+  {CPU_F380, 0xc0, "SMB0CN"},
+  {CPU_F380, 0xc0, "SMB1CN"},
+  {CPU_F380, 0xc1, "SMB0CF"},
+  {CPU_F380, 0xc1, "SMB1CF"},
+  {CPU_F380, 0xc2, "SMB0DAT"},
+  {CPU_F380, 0xc2, "SMB1DAT"},
+  {CPU_F380, 0xc3, "ADC0GTL"},
+  {CPU_F380, 0xc4, "ADC0GTH"},
+  {CPU_F380, 0xc5, "ADC0LTL"},
+  {CPU_F380, 0xc6, "ADC0LTH"},
+  {CPU_F380, 0xc7, "P4"},
+  {CPU_F380, 0xd1, "REF0CN"},
+  {CPU_F380, 0xd2, "SCON1"},
+  {CPU_F380, 0xd3, "SBUF1"},
+  {CPU_F380, 0xd4, "P0SKIP"},
+  {CPU_F380, 0xd5, "P1SKIP"},
+  {CPU_F380, 0xd6, "P2SKIP"},
+  {CPU_F380, 0xd7, "USB0XCN"},
+  {CPU_F380, 0xd8, "PCA0CN"},
+  {CPU_F380, 0xd9, "PCA0MD"},
+  {CPU_F380, 0xda, "PCA0CPM0"},
+  {CPU_F380, 0xdb, "PCA0CPM1"},
+  {CPU_F380, 0xdc, "PCA0CPM2"},
+  {CPU_F380, 0xdd, "PCA0CPM3"},
+  {CPU_F380, 0xde, "PCA0CPM4"},
+  {CPU_F380, 0xdf, "P3SKIP"},
+  {CPU_F380, 0xe1, "XBR0"},
+  {CPU_F380, 0xe2, "XBR1"},
+  {CPU_F380, 0xe3, "XBR2"},
+  {CPU_F380, 0xe4, "IT01CF"},
+  {CPU_F380, 0xe4, "CKCON1"},
+  {CPU_F380, 0xe5, "SMOD1"},
+  {CPU_F380, 0xe6, "EIE1"},
+  {CPU_F380, 0xe7, "EIE2"},
+  {CPU_F380, 0xe8, "ADC0CN"},
+  {CPU_F380, 0xe9, "PCA0CPL1"},
+  {CPU_F380, 0xea, "PCA0CPH1"},
+  {CPU_F380, 0xeb, "PCA0CPL2"},
+  {CPU_F380, 0xec, "PCA0CPH2"},
+  {CPU_F380, 0xed, "PCA0CPL3"},
+  {CPU_F380, 0xee, "PCA0CPH3"},
+  {CPU_F380, 0xef, "RSTSRC"},
+  {CPU_F380, 0xf1, "P0MDIN"},
+  {CPU_F380, 0xf2, "P1MDIN"},
+  {CPU_F380, 0xf3, "P2MDIN"},
+  {CPU_F380, 0xf4, "P3MDIN"},
+  {CPU_F380, 0xf5, "P4MDIN"},
+  {CPU_F380, 0xf6, "EIP1"},
+  {CPU_F380, 0xf7, "EIP2"},
+  {CPU_F380, 0xf8, "SPI0CN"},
+  {CPU_F380, 0xf9, "PCA0L"},
+  {CPU_F380, 0xfa, "PCA0H"},
+  {CPU_F380, 0xfb, "PCA0CPL0"},
+  {CPU_F380, 0xfc, "PCA0CPH0"},
+  {CPU_F380, 0xfd, "PCA0CPL4"},
+  {CPU_F380, 0xfe, "PCA0CPH4"},
+  {CPU_F380, 0xff, "VDM0CN"},
+  
+  {0, 0, NULL}
+};
+
+/*
+ * Names of bits
+ */
+
+static struct name_entry bit_tab51[]=
+{
+  /* PSW */
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xd7, "CY"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xd6, "AC"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xd5, "F0"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xd4, "RS1"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xd3, "RS0"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xd2, "OV"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xd1, "F1"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xd0, "P"},
+  /* TCON */
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x8f, "TF1"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x8e, "TR1"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x8d, "TF0"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x8c, "TR0"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x8b, "IE1"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x8a, "IT1"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x89, "IE0"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x88, "IT0"},
+  /* IE */
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xaf, "EA"},
+  {CPU_DS390|CPU_DS390F,          0xae, "ES1"},
+  {CPU_89C51R|CPU_251,            0xae, "EC"},
+  {CPU_ALL_52|CPU_251,            0xad, "ET2"},
+  {CPU_DS390|CPU_DS390F,          0xac, "ES0"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xac, "ES"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xab, "ET1"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xaa, "EX1"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xa9, "ET0"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0xa8, "EX0"},
+  /* IP */
+  {CPU_89C51R|CPU_251,    0xbe, "PPC"},
+  {CPU_DS390|CPU_DS390F,  0xbe, "PS1"},
+  {CPU_ALL_52,            0xbd, "PT2"},
+  {CPU_DS390|CPU_DS390F,  0xbc, "PS0"},
+  {CPU_ALL_51|CPU_ALL_52, 0xbc, "PS"},
+  {CPU_ALL_51|CPU_ALL_52, 0xbb, "PT1"},
+  {CPU_ALL_51|CPU_ALL_52, 0xba, "PX1"},
+  {CPU_ALL_51|CPU_ALL_52, 0xb9, "PT0"},
+  {CPU_ALL_51|CPU_ALL_52, 0xb8, "PX0"},
+  /* IPL0 */
+  {CPU_251, 0xbe, "IPL0.6"},
+  {CPU_251, 0xbd, "IPL0.5"},
+  {CPU_251, 0xbc, "IPL0.4"},
+  {CPU_251, 0xbb, "IPL0.3"},
+  {CPU_251, 0xba, "IPL0.2"},
+  {CPU_251, 0xb9, "IPL0.1"},
+  {CPU_251, 0xb8, "IPL0.0"},
+  /* SCON */
+  {CPU_DS390|CPU_DS390F,          0x9f, "SM0/FE_0"},
+  {CPU_DS390|CPU_DS390F,          0x9e, "SM1_0"},
+  {CPU_DS390|CPU_DS390F,          0x9d, "SM2_0"},
+  {CPU_DS390|CPU_DS390F,          0x9c, "REN_0"},
+  {CPU_DS390|CPU_DS390F,          0x9b, "TB8_0"},
+  {CPU_DS390|CPU_DS390F,          0x9a, "RB8_0"},
+  {CPU_DS390|CPU_DS390F,          0x99, "TI_0"},
+  {CPU_DS390|CPU_DS390F,          0x98, "RI_0"},
+
+  {CPU_51R|CPU_89C51R|CPU_251,    0x9f, "FE/SM0"},
+  {CPU_ALL_51|CPU_ALL_52,         0x9f, "SM0"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x9e, "SM1"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x9d, "SM2"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x9c, "REN"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x9b, "TB8"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x9a, "RB8"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x99, "TI"},
+  {CPU_ALL_51|CPU_ALL_52|CPU_251, 0x98, "RI"},
+  /* SCON 1 */
+  {CPU_DS390|CPU_DS390F,          0xc7, "SM0/FE_1"},
+  {CPU_DS390|CPU_DS390F,          0xc6, "SM1_1"},
+  {CPU_DS390|CPU_DS390F,          0xc5, "SM2_1"},
+  {CPU_DS390|CPU_DS390F,          0xc4, "REN_1"},
+  {CPU_DS390|CPU_DS390F,          0xc3, "TB8_1"},
+  {CPU_DS390|CPU_DS390F,          0xc2, "RB8_1"},
+  {CPU_DS390|CPU_DS390F,          0xc1, "TI_1"},
+  {CPU_DS390|CPU_DS390F,          0xc0, "RI_1"},
+  /* T2CON */
+  {CPU_ALL_52|CPU_251, 0xcf, "TF2"},
+  {CPU_ALL_52|CPU_251, 0xce, "EXF2"},
+  {CPU_ALL_52|CPU_251, 0xcd, "RCLK"},
+  {CPU_ALL_52|CPU_251, 0xcc, "TCLK"},
+  {CPU_ALL_52|CPU_251, 0xcb, "EXEN2"},
+  {CPU_ALL_52|CPU_251, 0xca, "TR2"},
+  {CPU_ALL_52|CPU_251, 0xc9, "C/T2"},
+  {CPU_ALL_52|CPU_251, 0xc8, "CP/RL2"},
+  /* CCON */
+  {CPU_89C51R|CPU_251, 0xdf, "CF"},
+  {CPU_89C51R|CPU_251, 0xde, "CR"},
+  {CPU_89C51R|CPU_251, 0xdc, "CCF4"},
+  {CPU_89C51R|CPU_251, 0xdb, "CCF3"},
+  {CPU_89C51R|CPU_251, 0xda, "CCF2"},
+  {CPU_89C51R|CPU_251, 0xd9, "CCF1"},
+  {CPU_89C51R|CPU_251, 0xd8, "CCF0"},
+  /* P1 */
+  {CPU_89C51R|CPU_251, 0x97, "CEX4"},
+  {CPU_89C51R|CPU_251, 0x96, "CEX3"},
+  {CPU_89C51R|CPU_251, 0x95, "CEX2"},
+  {CPU_89C51R|CPU_251, 0x94, "CEX1"},
+  {CPU_89C51R|CPU_251, 0x93, "CEX0"},
+  {CPU_89C51R|CPU_251, 0x92, "EXI"},
+  {CPU_89C51R|CPU_251, 0x91, "T2EX"},
+  {CPU_89C51R|CPU_251, 0x90, "T2"},
+  /* WDCON */
+  {CPU_DS390|CPU_DS390F, 0xdf, "SMOD_1"},
+  {CPU_DS390|CPU_DS390F, 0xde, "POR,"},
+  {CPU_DS390|CPU_DS390F, 0xdd, "EPF1"},
+  {CPU_DS390|CPU_DS390F, 0xdc, "PF1"},
+  {CPU_DS390|CPU_DS390F, 0xdb, "WDIF"},
+  {CPU_DS390|CPU_DS390F, 0xda, "WTRF"},
+  {CPU_DS390|CPU_DS390F, 0xd9, "EWT"},
+  {CPU_DS390|CPU_DS390F, 0xd8, "RWT"},
+  /* EIE */
+  {CPU_DS390|CPU_DS390F, 0xef, "CANBIE"},
+  {CPU_DS390|CPU_DS390F, 0xee, "C0IE"},
+  {CPU_DS390|CPU_DS390F, 0xed, "C1IE"},
+  {CPU_DS390|CPU_DS390F, 0xec, "EWDI"},
+  {CPU_DS390|CPU_DS390F, 0xeb, "EX5"},
+  {CPU_DS390|CPU_DS390F, 0xea, "EX4"},
+  {CPU_DS390|CPU_DS390F, 0xe9, "EX3"},
+  {CPU_DS390|CPU_DS390F, 0xe8, "EX2"},
+  /* EIP */
+  {CPU_DS390|CPU_DS390F, 0xef, "CANBIP"},
+  {CPU_DS390|CPU_DS390F, 0xee, "C0IP"},
+  {CPU_DS390|CPU_DS390F, 0xed, "C1IP"},
+  {CPU_DS390|CPU_DS390F, 0xec, "PWDI"},
+  {CPU_DS390|CPU_DS390F, 0xeb, "PX5"},
+  {CPU_DS390|CPU_DS390F, 0xea, "PX4"},
+  {CPU_DS390|CPU_DS390F, 0xe9, "PX3"},
+  {CPU_DS390|CPU_DS390F, 0xe8, "PX2"},
+
+  {0, 0, NULL}
+};
+
+
 /*
  * Options of uc51
  */
@@ -504,6 +908,7 @@ cl_51core::decode_rom(void)
   class cl_address_decoder *ad;
   ad= new cl_address_decoder(rom, rom_chip, 0, 0xffff, 0);
   ad->init();
+  ad->set_name("def_rom_decoder");
   rom->decoders->add(ad);
   ad->activate(0);
 }
@@ -512,9 +917,10 @@ void
 cl_51core::decode_regs(void)
 {
   int i;
-  cl_banker *b= new cl_banker(sfr, 0xd0, 0x18,
+  cl_banker *b= new cl_banker(sfr, 0xd0, 0x18, //0,
 			      regs, 0, 7);
   b->init();
+  b->set_name("def_regs_banker");
   regs->decoders->add(b);
   b->add_bank(0, memory("iram_chip"), 0);
   b->add_bank(1, memory("iram_chip"), 8);
@@ -534,6 +940,7 @@ cl_51core::decode_bits(void)
 		    iram_chip, 32,
 		    8, 1);
   ad->init();
+  ad->set_name("def_bits_bander_0-7f");
   bits->decoders->add(ad);
   ad->activate(0);
 
@@ -541,6 +948,7 @@ cl_51core::decode_bits(void)
 		    sfr_chip, 0,
 		    8, 8);
   ad->init();
+  ad->set_name("def_bits_bander_80-ff");
   bits->decoders->add(ad);
   ad->activate(0);
 }
@@ -552,6 +960,7 @@ cl_51core::decode_iram(void)
   
   ad= new cl_address_decoder(iram, iram_chip, 0, 0x7f, 0);
   ad->init();
+  ad->set_name("def_iram_decoder");
   iram->decoders->add(ad);
   ad->activate(0);
 }
@@ -563,6 +972,7 @@ cl_51core::decode_sfr(void)
   
   ad= new cl_address_decoder(sfr, sfr_chip, 0x80, 0xff, 0);
   ad->init();
+  ad->set_name("def_sfr_decoder");
   sfr->decoders->add(ad);
   ad->activate(0);
 }
@@ -574,6 +984,7 @@ cl_51core::decode_xram(void)
   
   ad= new cl_address_decoder(xram, xram_chip, 0, 0xffff, 0);
   ad->init();
+  ad->set_name("def_xram_decoder");
   xram->decoders->add(ad);
   ad->activate(0);
 }
@@ -603,7 +1014,7 @@ cl_51core::decode_dptr(void)
 	{
 	  // multi DPTR sfr style
 	  //printf("MDPS %x %x %x %x\n", adps, mdps, dpl1, dph1);
-	  banker= new cl_banker(sfr, adps, mdps,
+	  banker= new cl_banker(sfr, adps, mdps, //0,
 				dptr, 0, 0);
 	  banker->init();
 	  dptr->decoders->add(banker);
@@ -611,7 +1022,7 @@ cl_51core::decode_dptr(void)
 	  banker->add_bank(1, memory("sfr_chip"), dpl1-0x80);
 	  banker->activate(0);
 
-	  banker= new cl_banker(sfr, adps, mdps,
+	  banker= new cl_banker(sfr, adps, mdps, //0,
 				dptr, 1, 1);
 	  banker->init();
 	  dptr->decoders->add(banker);
@@ -640,7 +1051,7 @@ cl_51core::decode_dptr(void)
 	      while ((m&1) == 0)
 		m>>= 1;
 	      
-	      banker= new cl_banker(sfr, adpc, mdpc,
+	      banker= new cl_banker(sfr, adpc, mdpc, //0,
 			    dptr, 0, 1);
 	      banker->init();
 	      dptr->decoders->add(banker);
@@ -648,7 +1059,7 @@ cl_51core::decode_dptr(void)
 		banker->add_bank(a, dptr_chip, a*2);
 	      banker->activate(0);
 
-	      banker= new cl_banker(sfr, adpc, mdpc,
+	      banker= new cl_banker(sfr, adpc, mdpc, //0,
 			    sfr, DPL, DPH);
 	      banker->init();
 	      sfr->decoders->add(banker);
@@ -672,13 +1083,13 @@ cl_51core::decode_dptr(void)
     }
   
   cl_var *v;
-  vars->add(v= new cl_var(chars("dpl"), dptr, 0));
+  vars->add(v= new cl_var(chars("dpl"), dptr, 0, ""));
   v->init();
-  vars->add(v= new cl_var(chars("DPL"), dptr, 0));
+  vars->add(v= new cl_var(chars("DPL"), dptr, 0, ""));
   v->init();
-  vars->add(v= new cl_var(chars("dph"), dptr, 1));
+  vars->add(v= new cl_var(chars("dph"), dptr, 1, ""));
   v->init();
-  vars->add(v= new cl_var(chars("DPH"), dptr, 1));
+  vars->add(v= new cl_var(chars("DPH"), dptr, 1, ""));
   v->init();
 }
 
@@ -687,22 +1098,44 @@ cl_51core::make_vars(void)
 {
   cl_var *v;
 
-  vars->add(v= new cl_var(cchars("R0"), regs, 0));
+  vars->add(v= new cl_var(cchars("R0"), regs, 0, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("R1"), regs, 1));
+  vars->add(v= new cl_var(cchars("R1"), regs, 1, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("R2"), regs, 2));
+  vars->add(v= new cl_var(cchars("R2"), regs, 2, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("R3"), regs, 3));
+  vars->add(v= new cl_var(cchars("R3"), regs, 3, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("R4"), regs, 4));
+  vars->add(v= new cl_var(cchars("R4"), regs, 4, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("R5"), regs, 5));
+  vars->add(v= new cl_var(cchars("R5"), regs, 5, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("R6"), regs, 6));
+  vars->add(v= new cl_var(cchars("R6"), regs, 6, ""));
   v->init();
-  vars->add(v= new cl_var(cchars("R7"), regs, 7));
+  vars->add(v= new cl_var(cchars("R7"), regs, 7, ""));
   v->init();
+
+  int i;
+  for (i= 0; sfr_tab51[i].name != NULL; i++)
+    {
+      if (type->type & sfr_tab51[i].cpu_type)
+	{
+	  vars->add(v= new cl_var(chars(sfr_tab51[i].name),
+				  sfr,
+				  sfr_tab51[i].addr, ""));
+	  v->init();
+	}
+    }
+  for (i= 0; bit_tab51[i].name != NULL; i++)
+    {
+      if (type->type & bit_tab51[i].cpu_type)
+	{
+	  vars->add(v= new cl_var(chars(bit_tab51[i].name),
+				  bits,
+				  bit_tab51[i].addr, ""));
+	  v->init();
+	}
+    }
 }
 
 /*
@@ -726,12 +1159,6 @@ cl_51core::dis_tbl(void)
 }
 
 struct name_entry *
-cl_51core::sfr_tbl(void)
-{
-  return(sfr_tab51);
-}
-
-struct name_entry *
 cl_51core::bit_tbl(void)
 {
   return(bit_tab51);
@@ -740,7 +1167,7 @@ cl_51core::bit_tbl(void)
 char *
 cl_51core::disass(t_addr addr, const char *sep)
 {
-  char work[256], temp[20], c[2];
+  char work[256], temp[200]/*, c[2]*/;
   char *buf, *p, *t, *s;
   const char *b;
   t_mem code= rom->get(addr);
@@ -766,27 +1193,24 @@ cl_51core::disass(t_addr addr, const char *sep)
 				    rom->get(addr+2)));
 	      break;
 	    case 'a': // addr8 (direct address) at 2nd byte
- 	      if (!get_name(rom->get(addr+1), sfr_tbl(), temp))
-		sprintf(temp, "%02x", (int)rom->get(addr+1));
+	      daddr_name(rom->get(addr+1), temp);
 	      break;
 	    case '8': // addr8 (direct address) at 3rd byte
- 	      if (!get_name(rom->get(addr+2), sfr_tbl(), temp))
-		sprintf(temp, "%02x", (int)rom->get(addr+2));
+	      daddr_name(rom->get(addr+2), temp);
 	      break;
 	    case 'b': // bitaddr at 2nd byte
 	      {
 		t_addr ba= rom->get(addr+1);
-		if (get_name(ba, bit_tbl(), temp))
+		/*if (get_name(ba, bit_tbl(), temp))
 		  break;
-		if (get_name((ba<128)?((ba/8)+32):(ba&0xf8), sfr_tbl(), temp))
-		  {
-		    strcat(temp, ".");
-		    sprintf(c, "%1d", (int)(ba & 0x07));
-		    strcat(temp, c);
-		    break;
-		  }
-		sprintf(temp, "%02lx.%d", (long int)((ba<128)?((ba/8)+32):(ba&0xf8)),
-			(int)(ba & 0x07));
+		if (ba<128)
+		  addr_name((ba/8)+32,iram,temp);
+		else
+		  addr_name(ba&0xf8,sfr,temp);
+		strcat(temp, ".");
+		sprintf(c, "%1d", (int)(ba & 0x07));
+		strcat(temp, c);*/
+		baddr_name(ba, temp);
 		break;
 	      }
 	    case 'r': // rel8 address at 2nd byte
@@ -1027,6 +1451,55 @@ cl_51core::bit_address(class cl_memory *mem,
       return((mem_address-0x20)*8 + bit_number);
     }
   return(-1);
+}
+
+/* Get name of directly addressed iram/sfr cell */
+
+void
+cl_51core::daddr_name(t_addr addr, char *buf)
+{
+  if (!buf)
+    return;
+  if (addr < 128)
+    {
+      // register?
+      if (addr_name(addr, regs, buf))
+	return;
+      // variale?
+      if (addr_name(addr, iram, buf))
+	return;
+    }
+  else
+    {
+      // dptr?
+      if (addr_name(addr-0x82, dptr, buf))
+	return;
+      // sfr?
+      if (addr_name(addr, sfr, buf))
+	return;
+    }
+  unsigned int a= addr;
+  sprintf(buf, "%02x", a);
+}
+
+/* Get name of a bit cell */
+
+void
+cl_51core::baddr_name(t_addr addr, char *buf)
+{
+  t_addr ma;
+  
+  if (!buf)
+    return;
+  if (addr_name(addr, bits, buf))
+    return;
+  if (addr < 128)
+    ma= 32+(addr/8);
+  else
+    ma= addr&0xf8;
+  daddr_name(ma, buf);
+  chars c= chars("", "%s.%d", buf, (int)(addr & 7));
+  strcpy(buf, (char*)c);
 }
 
 
@@ -1478,17 +1951,23 @@ cl_uc51_cpu::init(void)
     acc_bits[i]= register_cell(bas, ACC+i);
 
   cl_var *v;
-  uc->vars->add(v= new cl_var(cchars("cpu_aof_mdps"), cfg, uc51cpu_aof_mdps));
+  uc->vars->add(v= new cl_var(cchars("cpu_aof_mdps"), cfg, uc51cpu_aof_mdps,
+			      "Address of multi_DPTR_sfr selector (WR selects this style of multi_DPTR)"));
   v->init();
-  uc->vars->add(v= new cl_var(cchars("cpu_mask_mdps"), cfg, uc51cpu_mask_mdps));
+  uc->vars->add(v= new cl_var(cchars("cpu_mask_mdps"), cfg, uc51cpu_mask_mdps,
+			      "Mask in multi_DPTR_srf selector"));
   v->init();
-  uc->vars->add(v= new cl_var(cchars("cpu_aof_mdps1l"), cfg, uc51cpu_aof_mdps1l));
+  uc->vars->add(v= new cl_var(cchars("cpu_aof_mdps1l"), cfg, uc51cpu_aof_mdps1l,
+			      "Address of multi_DPTR_sfr DPL1"));
   v->init();
-  uc->vars->add(v= new cl_var(cchars("cpu_aof_mdps1h"), cfg, uc51cpu_aof_mdps1h));
+  uc->vars->add(v= new cl_var(cchars("cpu_aof_mdps1h"), cfg, uc51cpu_aof_mdps1h,
+			      "Address of multi_DPTR_sfr DPH1"));
   v->init();
-  uc->vars->add(v= new cl_var(cchars("cpu_aof_mdpc"), cfg, uc51cpu_aof_mdpc));
+  uc->vars->add(v= new cl_var(cchars("cpu_aof_mdpc"), cfg, uc51cpu_aof_mdpc,
+			      "Address of multi_DPTR_chip selector (WR selects this stly of ulti_DPTR)"));
   v->init();
-  uc->vars->add(v= new cl_var(cchars("cpu_mask_mdpc"), cfg, uc51cpu_mask_mdpc));
+  uc->vars->add(v= new cl_var(cchars("cpu_mask_mdpc"), cfg, uc51cpu_mask_mdpc,
+			      "Mask in multi_DPTR_chip selector"));
   v->init();
   
   return(0);

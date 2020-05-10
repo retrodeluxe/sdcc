@@ -35,7 +35,7 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #include <ctype.h>
 #include "i_string.h"
 
-#include "cmdlexcl.h"
+//#include "cmdlexcl.h"
 
 // prj
 #include "globals.h"
@@ -152,7 +152,9 @@ cl_console_base::init(void)
   welcome();
   print_prompt();
   last_command= 0;
-  last_cmdline= 0;
+  //last_cmdline= 0;
+  last_cmd= chars("");
+  prev_quit= -1;
   return(0);
 }
 
@@ -274,7 +276,6 @@ cl_console_base::cmd_do_print(const char *format, va_list ap)
 	  fi->eof() &&
 	  (fi->id() == fo->id()))
 	{
-	  deb("do not attempt to write on console, where input is at file_end\n");
 	  return 0;
 	}
       ret= fo->vprintf((char*)format, ap);
@@ -430,7 +431,6 @@ cl_console_base::proc_input(class cl_cmdset *cmdset)
   i= read_line();
   if (i < 0)
     {
-      deb("closing, bacause read_line on con=%d returned %d\n", id, i);
       return 1;
     }
   if (i == 0)
@@ -456,46 +456,41 @@ cl_console_base::proc_input(class cl_cmdset *cmdset)
           if (get_flag(CONS_ECHO))
             dd_printf("%s\n", cmdstr);
           cmdline= new cl_cmdline(app, cmdstr, this);
-          cmdline->init();
-          if (cmdline->repeat() &&
-              is_interactive() &&
-              last_command)
-            {
-              cm = last_command;
-              delete cmdline;
-              cmdline = last_cmdline;
-            }
-	  else
-            {
-              cm= cmdset->get_cmd(cmdline, is_interactive());
-              if (last_cmdline)
-                {
-                  delete last_cmdline;
-                  last_cmdline = 0;
-                }
-	      last_command = 0;
-            }
-          if (cm)
-            {
-              retval= cm->work(app, cmdline, this);
-              if (cm->can_repeat)
-                {
-                  last_command = cm;
-                  last_cmdline = cmdline;
-                }
-              else
-                delete cmdline;
-            }
-          else if (cmdline->get_name() != 0)
-            {
-	      if (strlen(cmdstr) > 0)
+	  do
+	    {
+	      cmdline->init();
+	      if (cmdline->repeat() &&
+		  is_interactive() &&
+		  last_command)
 		{
-		  uc_yy_set_string_to_parse(cmdstr);
-		  yyparse();
-		  uc_yy_free_string_to_parse();
+		  cm= last_command;
 		}
-              delete cmdline;
-            }
+	      else
+		{
+		  cm= cmdset->get_cmd(cmdline, is_interactive());
+		  last_command = 0;
+		}
+	      if (cm)
+		{
+		  retval= cm->work(app, cmdline, this);
+		  if (cm->can_repeat)
+		    {
+		      last_command = cm;
+		      last_cmd= cmdline->cmd;
+		    }
+		}
+	      else if (cmdline->get_name() != 0)
+		{
+		  char *e= cmdline->cmd;
+		  if (strlen(e) > 0)
+		    {
+		      long l= application->eval(e);
+		      dd_printf("%ld\n", l);
+		    }
+		}
+	    }
+	  while (cmdline->restart_at_rest());
+	  delete cmdline;
         }
     }
   if (!is_frozen())

@@ -573,8 +573,8 @@ struct USART4_saf_t {
 
 #if (DEVICE & DEV_STM8SAF)
 #if defined USART1
-#define USART1_TX_IRQ 11
-#define USART1_RX_IRQ 12
+#define USART1_TX_IRQ 17
+#define USART1_RX_IRQ 18
 #endif
 #endif
 #if (DEVICE & DEV_STM8ALL) || \
@@ -760,7 +760,38 @@ struct CLK_t {
 #if (DEVICE & DEV_STM8L101)
 #define UID ((uint8_t*)0x4925)
 #endif
-  
+
+/* FLASH
+ */
+
+#if (DEVICE & DEV_STM8SAF)
+struct FLASH_t {
+  volatile uint8_t cr1;
+  volatile uint8_t cr2;
+  volatile uint8_t ncr2;
+  volatile uint8_t fpr;
+  volatile uint8_t nfpr;
+  volatile uint8_t iapsr;
+  volatile uint16_t dummy1;
+  volatile uint8_t pukr;
+  volatile uint8_t dummy2;
+  volatile uint8_t dukr;
+};
+#define FLASH ((volatile struct FLASH_t * volatile)0x505a)
+#define FLASH_IRQ 24
+#elif (DEVICE & DEV_STM8ALL) ||			\
+  (DEVICE & DEV_STM8L101)
+struct FLASH_t {
+  volatile uint8_t cr1;
+  volatile uint8_t cr2;
+  volatile uint8_t pukr;
+  volatile uint8_t dukr;
+  volatile uint8_t iapsr;
+};
+#define FLASH ((struct FLASH_t *)0x5050)
+#define FLASH_IRQ 1
+#endif
+
 #define EI __asm__("rim")
 #define DI __asm__("sim")
 

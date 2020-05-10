@@ -1,3 +1,103 @@
+2018-11-15 Philipp Klaus Krause <pkk AT spth.de>
+
+	* historygraphs/coremark-stm8-score.svg,
+	  historygraphs/stdcbench-0.6-mcs51.patch,
+	  historygraphs/stdcbench-0.6-stm8.patch,
+	  historygraphs/stdcbench-mcs51-size.svg,
+	  historygraphs/stdcbench-mcs51-sizetable.p,
+	  historygraphs/Makefile,
+	  historygraphs/coremark-stm8-scoretable.p:
+	  Support for using stdcbench for mcs51.
+	* historygraphs/*.svg:
+	  Update graphs.
+
+2018-11-08 Philipp Klaus Krause <pkk AT spth.de>
+
+	* historygraphs/Makefile,
+	  historygraphs/execute_benchmark-stm8,
+	  historygraphs/execute_benchmark-mcs51,
+	  historygraphs/stdcbench-0.6.patch,
+	  coremark-stm8-sizetable.p,
+	  stdcbench-stm8-sizetable.p,
+	  stdcbench-stm8-scoretable.p,
+	  historygraphs/*.svg:
+	  Improve handling of parallel make, some Coremark and stdcbench support, update graphs.
+
+2018-10-18 Philipp Klaus Krause <pkk AT spth.de>
+
+	* historygraphs/README,
+	  historygraphs/whetstone-mcs51-sizetable.p:
+	  Minor fixes.
+	* historygraphs/*-size.svg:
+	  Update graphs.
+
+2018-10-02 Philipp Klaus Krause <pkk AT spth.de>
+
+	* historygraphs/*:
+	  Update graphs to show progress around the 3.8.0 release.
+
+2018-09-19 Philipp Klaus Krause <pkk AT spth.de>
+
+	* historygraphs/Makefile,
+	  historygraphs/*-stm8-*.svg
+	  historygraphs/*-stm8-*table.p:
+	  Update graphs to illustrate progress since 3.7.0.
+
+2018-06-17 Philipp Klaus Krause <pkk AT spth.de>
+
+	* historygraphs/Makefile,
+	  historygraphs/dhrystone-*-size.svg:
+	  Update graphs to illustrate RFE #574.
+
+2018-04-04 Philipp Klaus Krause <pkk AT spth.de>
+
+	* historygraphs/Makefile,
+	  historygraphs/*.p,
+	  historygraphs/*.svg,
+	  Add mcs51 Whetstone graphs, update other graphs.
+
+2018-03-23 Philipp Klaus Krause <pkk AT spth.de>
+
+	* historygraphs/whetstone-mcs51,
+	  historygraphs/whetstone-mcs51-sizetable.p,
+	  historygraphs/Makefile:
+	  Infrastructure for generating mcs51 Whetstone graphs.
+
+2018-03-22 Philipp Klaus Krause <pkk AT spth.de>
+
+	* historygraphs/execute_benchmark-mcs51,
+	  historygraphs/hello-mcs51,
+	  historygraphs/Makefile:
+	  Infrastructure for generating mcs51 Dhrystone speed graphs.
+
+2018-03-21 Philipp Klaus Krause <krauseph AT informatik.uni-freiburg.de>
+
+	* Makefile,
+	  dhrystone-mcs51,
+	  dhrystone-mcs51-sizetable.p,
+	  dhrystone-mcs51-size.svg:
+	  Support for mcs51 Dhrystone code size graphs.
+
+2018-02-26 Philipp Klaus Krause <pkk AT spth.de>
+
+	* historygraphs/Makefile,
+	  historygraphs/README:
+	  Update for 3.7.0, document conflict with installed sdcc.
+
+2018-01-31 Philipp Klaus Krause <philipp AT informatik.uni-frankfurt.de>
+
+	* historygraphs/Makefile,
+	  historygraphs/Makefile.coremark,
+	  historygraphs/coremark-1.0.patch:
+	  Infrastructure for Coremark code size and speed history graphs.
+	* historygraphs/*.svg:
+	  Bring graphs into svn, since they take substantial effort to recreate.
+
+2018-01-22 Philipp Klaus Krause <philipp AT informatik.uni-frankfurt.de>
+
+	* historygraphs:
+	  Infrastructure for generating SDCC code size and speed history graphs.
+
 2014-04-14 Philipp Klaus Krause <philipp AT informatik.uni-frankfurt.de>
 
 	* emu/rrgb/main.c:

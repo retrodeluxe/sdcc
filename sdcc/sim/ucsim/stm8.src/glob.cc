@@ -25,8 +25,6 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 02111-1307, USA. */
 /*@1@*/
 
-/* $Id: glob.cc 345 2016-07-10 14:51:45Z  $ */
-
 #include <stdio.h>
 
 #include "stypes.h"
@@ -156,7 +154,7 @@ struct dis_entry disass_stm8[]= {
   { 0x00dc, 0x00ff, ' ', 3, "jp (%2,X)" },
   { 0x00ec, 0x00ff, ' ', 2, "jp (%1,X)" },
   { 0x00fc, 0x00ff, ' ', 1, "jp (X)" },
-  { 0x00ad, 0x00ff, ' ', 4, "jpf %e" },
+  { 0x00ac, 0x00ff, ' ', 4, "jpf %e" },
   { 0x0020, 0x00ff, ' ', 2, "jra %p" },
 
   { 0x0021, 0x00ff, ' ', 2, "jrf %p" },
@@ -337,6 +335,8 @@ struct dis_entry disass_stm8[]= {
   { 0x00e8, 0x00ff, ' ', 2, "xor A,(%1,X)" },
   { 0x00f8, 0x00ff, ' ', 1, "xor A,(X)" },
 
+  { 0x008b, 0x00ff, ' ', 1, "break" },
+  
   { 0, 0, 0, 0, NULL }
 };
 
@@ -365,41 +365,41 @@ struct dis_entry disass_stm8_72[]= {
   { 0x00c5, 0x00ff, ' ', 3, "bcp A,[%2.w]" },
   { 0x00d5, 0x00ff, ' ', 3, "bcp A,([%2.w],X)" },
 
-  { 0x0011, 0x00ff, ' ', 3, "bres %d,#0" },
-  { 0x0013, 0x00ff, ' ', 3, "bres %d,#1" },
-  { 0x0015, 0x00ff, ' ', 3, "bres %d,#2" },
-  { 0x0017, 0x00ff, ' ', 3, "bres %d,#3" },
-  { 0x0019, 0x00ff, ' ', 3, "bres %d,#4" },
-  { 0x001b, 0x00ff, ' ', 3, "bres %d,#5" },
-  { 0x001d, 0x00ff, ' ', 3, "bres %d,#6" },
-  { 0x001f, 0x00ff, ' ', 3, "bres %d,#7" },
+  { 0x0011, 0x00ff, ' ', 3, "bres %x,#0" },
+  { 0x0013, 0x00ff, ' ', 3, "bres %x,#1" },
+  { 0x0015, 0x00ff, ' ', 3, "bres %x,#2" },
+  { 0x0017, 0x00ff, ' ', 3, "bres %x,#3" },
+  { 0x0019, 0x00ff, ' ', 3, "bres %x,#4" },
+  { 0x001b, 0x00ff, ' ', 3, "bres %x,#5" },
+  { 0x001d, 0x00ff, ' ', 3, "bres %x,#6" },
+  { 0x001f, 0x00ff, ' ', 3, "bres %x,#7" },
 
-  { 0x0010, 0x00ff, ' ', 3, "bset %d,#0" },
-  { 0x0012, 0x00ff, ' ', 3, "bset %d,#1" },
-  { 0x0014, 0x00ff, ' ', 3, "bset %d,#2" },
-  { 0x0016, 0x00ff, ' ', 3, "bset %d,#3" },
-  { 0x0018, 0x00ff, ' ', 3, "bset %d,#4" },
-  { 0x001a, 0x00ff, ' ', 3, "bset %d,#5" },
-  { 0x001c, 0x00ff, ' ', 3, "bset %d,#6" },
-  { 0x001e, 0x00ff, ' ', 3, "bset %d,#7" },
+  { 0x0010, 0x00ff, ' ', 3, "bset %x,#0" },
+  { 0x0012, 0x00ff, ' ', 3, "bset %x,#1" },
+  { 0x0014, 0x00ff, ' ', 3, "bset %x,#2" },
+  { 0x0016, 0x00ff, ' ', 3, "bset %x,#3" },
+  { 0x0018, 0x00ff, ' ', 3, "bset %x,#4" },
+  { 0x001a, 0x00ff, ' ', 3, "bset %x,#5" },
+  { 0x001c, 0x00ff, ' ', 3, "bset %x,#6" },
+  { 0x001e, 0x00ff, ' ', 3, "bset %x,#7" },
 
-  { 0x0001, 0x00ff, ' ', 4, "bjtf %d,#0,%p" },
-  { 0x0003, 0x00ff, ' ', 4, "bjtf %d,#1,%p" },
-  { 0x0005, 0x00ff, ' ', 4, "bjtf %d,#2,%p" },
-  { 0x0007, 0x00ff, ' ', 4, "bjtf %d,#3,%p" },
-  { 0x0009, 0x00ff, ' ', 4, "bjtf %d,#4,%p" },
-  { 0x000b, 0x00ff, ' ', 4, "bjtf %d,#5,%p" },
-  { 0x000d, 0x00ff, ' ', 4, "bjtf %d,#6,%p" },
-  { 0x000f, 0x00ff, ' ', 4, "bjtf %d,#7,%p" },
+  { 0x0001, 0x00ff, ' ', 4, "bjtf %x,#0,%p" },
+  { 0x0003, 0x00ff, ' ', 4, "bjtf %x,#1,%p" },
+  { 0x0005, 0x00ff, ' ', 4, "bjtf %x,#2,%p" },
+  { 0x0007, 0x00ff, ' ', 4, "bjtf %x,#3,%p" },
+  { 0x0009, 0x00ff, ' ', 4, "bjtf %x,#4,%p" },
+  { 0x000b, 0x00ff, ' ', 4, "bjtf %x,#5,%p" },
+  { 0x000d, 0x00ff, ' ', 4, "bjtf %x,#6,%p" },
+  { 0x000f, 0x00ff, ' ', 4, "bjtf %x,#7,%p" },
 
-  { 0x0000, 0x00ff, ' ', 4, "btjt %d,#0,%p" },
-  { 0x0002, 0x00ff, ' ', 4, "btjt %d,#1,%p" },
-  { 0x0004, 0x00ff, ' ', 4, "btjt %d,#2,%p" },
-  { 0x0006, 0x00ff, ' ', 4, "btjt %d,#3,%p" },
-  { 0x0008, 0x00ff, ' ', 4, "btjt %d,#4,%p" },
-  { 0x000a, 0x00ff, ' ', 4, "btjt %d,#5,%p" },
-  { 0x000c, 0x00ff, ' ', 4, "btjt %d,#6,%p" },
-  { 0x000e, 0x00ff, ' ', 4, "btjt %d,#7,%p" },
+  { 0x0000, 0x00ff, ' ', 4, "btjt %x,#0,%p" },
+  { 0x0002, 0x00ff, ' ', 4, "btjt %x,#1,%p" },
+  { 0x0004, 0x00ff, ' ', 4, "btjt %x,#2,%p" },
+  { 0x0006, 0x00ff, ' ', 4, "btjt %x,#3,%p" },
+  { 0x0008, 0x00ff, ' ', 4, "btjt %x,#4,%p" },
+  { 0x000a, 0x00ff, ' ', 4, "btjt %x,#5,%p" },
+  { 0x000c, 0x00ff, ' ', 4, "btjt %x,#6,%p" },
+  { 0x000e, 0x00ff, ' ', 4, "btjt %x,#7,%p" },
 
   { 0x00cd, 0x00ff, ' ', 3, "call [%2.w]", true },
   { 0x00dd, 0x00ff, ' ', 3, "call ([%2.w],X)", true },

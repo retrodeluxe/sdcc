@@ -25,10 +25,9 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 02111-1307, USA. */
 /*@1@*/
 
-/* $Id$ */
-
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "utils.h"
 #include "globals.h"
@@ -75,15 +74,20 @@ cl_serial_hw::init(void)
   serial_port_option->init();
   class cl_option *o= serial_port_option->use(s);
   free(s);
+  int port= -1;
   if (o)
     {
-      int port= serial_port_option->get_value((long)0);
-      if (port > 0)
-	listener= new cl_serial_listener(port, application, this);
+      port= serial_port_option->get_value((long)0);
+      if (port < 0)
+	;//port= 5560+id;
+    }
+  //else port= 5560+id;
+  if (port > 0)
+    {
+      listener= new cl_serial_listener(port, application, this);
       class cl_commander_base *c= application->get_commander();
       c->add_console(listener);
     }
-  
   char *f_serial_in = (char*)serial_in_file_option->get_value((char*)0);
   char *f_serial_out= (char*)serial_out_file_option->get_value((char*)0);
   class cl_f *fi, *fo;
@@ -119,11 +123,6 @@ cl_serial_hw::init(void)
       fi->interactive(NULL);
       fi->raw();
       fi->echo(NULL);
-      //deb("** serial io fin %d\n", fi->file_id);
-    }
-  if (fo)
-    {
-      //deb("** serial io fount %d\n", fo->file_id);
     }
 
   menu= 0;
@@ -135,13 +134,29 @@ cl_serial_hw::init(void)
   cl_var *v;
   chars pn(id_string);
   pn.append("%d_", id);
-  uc->vars->add(v= new cl_var(pn+chars("on"), cfg, serconf_on));
+  uc->vars->add(v= new cl_var(pn+chars("on"), cfg, serconf_on,
+			      "WR: turn on/off, RD: check state"));
   v->init();
-  uc->vars->add(v= new cl_var(pn+chars("check_often"), cfg, serconf_check_often));
+  uc->vars->add(v= new cl_var(pn+chars("check_often"), cfg, serconf_check_often,
+			      "When true, serial IO checked at every instruction"));
   v->init();
-  uc->vars->add(v= new cl_var(pn+chars("esc_char"), cfg, serconf_escape));
+  uc->vars->add(v= new cl_var(pn+chars("esc_char"), cfg, serconf_escape,
+			      "Escape character on serial IO screen"));
+  v->init();
+
+  uc->vars->add(v= new cl_var(pn+chars("received_char"), cfg, serconf_received,
+			      "Received character"));
   v->init();
 		
+  uc->vars->add(v= new cl_var(pn+chars("flowctrl"), cfg, serconf_flowctrl,
+			      "Simulate flow control"));
+  v->init();
+
+  uc->vars->add(v= new cl_var(pn+chars("able_receive"), cfg, serconf_able_receive,
+			      "Receiver is able to receive (when flow ctrl)"));
+  v->init();
+
+  cfg_set(serconf_able_receive, 1);
   return 0;
 }
 
@@ -169,6 +184,14 @@ cl_serial_hw::conf_op(cl_memory_cell *cell, t_addr addr, t_mem *val)
 	  cell->set(*val?1:0);
 	}
       break;
+    case serconf_escape:
+      if (val)
+	{
+	  char c= tolower(*val);
+	  if ((c >= 'a') &&
+	      (c <= 'z'))
+	    cell->set(c - 'a'+1);
+	}
     default:
       break;
     }
@@ -204,6 +227,8 @@ cl_serial_hw::proc_input(void)
   char esc= (char)cfg_get(serconf_escape);
   bool run= uc->sim->state & SIM_GO;
   class cl_f *fin, *fout;
+  int flw= cfg_get(serconf_flowctrl);
+  int able= cfg_get(serconf_able_receive);
 
   fin= io->get_fin();
   fout= io->get_fout();
@@ -214,19 +239,16 @@ cl_serial_hw::proc_input(void)
 	  (fout->file_id == fin->file_id))
 	{
 	  delete fout;
-	  //io->fout= 0;//mk_io("", "");
 	  io->replace_files(false, fin, 0);
 	  fout= 0;
 	}
       delete fin;
-      //io->fin= 0;//mk_io("", "");
       io->replace_files(false, 0, fout);
-      //application->get_commander()->update_active();
       return true;
     }
   if (menu == 0)
     {
-      if (!input_avail || !run)
+      if (fin->tty && !flw)
 	{
 	  if (fin->read(&c, 1))
 	    {
@@ -247,10 +269,24 @@ cl_serial_hw::proc_input(void)
 				'a'+esc-1, 'a'+esc-1
 				);
 		}
-	      else if (run)
+	      else if (!input_avail)
 		{
 		  input= c;
 		  input_avail= true;
+		}
+	    }
+	}
+      else if (!input_avail)
+	{
+	  if (!flw ||
+	      able)
+	    {
+	      if (fin->read(&c, 1))
+		{
+		  //printf("ser: %d,%c\n",c,isprint(c)?c:' ');
+		  input= c;
+		  input_avail= true;
+		  cfg_set(serconf_able_receive, 0);
 		}
 	    }
 	}
@@ -300,7 +336,7 @@ cl_serial_hw::proc_input(void)
 		case 'T':
 		  uc->reset();
 		  menu= 0;
-		  io->dd_printf("CPU reseted.\n");
+		  io->dd_printf("CPU reset.\n");
 		  break;
 		case 'q': case 'Q': case 'q'-'a'+1:
 		  // kill
@@ -342,12 +378,25 @@ cl_serial_hw::proc_input(void)
   return true;
 }
 
+void
+cl_serial_hw::reset(void)
+{
+  cfg_set(serconf_able_receive, 1);
+}
 
 cl_serial_listener::cl_serial_listener(int serverport, class cl_app *the_app,
 				       class cl_serial_hw *the_serial):
   cl_listen_console(serverport, the_app)
 {
   serial_hw= the_serial;
+}
+
+int
+cl_serial_listener::init(void)
+{
+  if (serial_hw)
+    set_name(chars("", "serial_listener_%s_%d\n", serial_hw->get_name(), serial_hw->id));
+  return 0;
 }
 
 int

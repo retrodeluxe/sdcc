@@ -101,24 +101,33 @@ cl_port::init(void)
     }
   prev= cell_p->get();
   cell_in= cfg->get_cell(port_pin);
+  cfg->set(port_value, prev & cell_in->get());
   
   cl_var *v;
   chars pn;
   pn= cchars("port");
   pn.append("%d_", id);
-  uc->vars->add(v= new cl_var(pn+chars("on"), cfg, port_on));
+  uc->vars->add(v= new cl_var(pn+chars("on"), cfg, port_on,
+			      "Turn/get on/off state"));
   v->init();
-  uc->vars->add(v= new cl_var(pn+chars("pin"), cfg, port_pin));
+  uc->vars->add(v= new cl_var(pn+chars("pin"), cfg, port_pin,
+			      "Outside value of port pins"));
   v->init();
-  uc->vars->add(v= new cl_var(pn+chars("pins"), cfg, port_pin));
+  uc->vars->add(v= new cl_var(pn+chars("pins"), cfg, port_pin,
+			      "Outside value of port pins"));
+  v->init();
+  uc->vars->add(v= new cl_var(pn+chars("value"), cfg, port_value,
+			      "RO: value of the port"));
   v->init();
   chars p= chars("pin");
   p.append("%d", id);
-  uc->vars->add(v= new cl_var(p, cfg, port_pin));
+  uc->vars->add(v= new cl_var(p, cfg, port_pin,
+			      "Outside value of port pins"));
   v->init();
   p= chars("pins");
   p.append("%d", id);
-  uc->vars->add(v= new cl_var(p, cfg, port_pin));
+  uc->vars->add(v= new cl_var(p, cfg, port_pin,
+			      "Outside value of port pins"));
   v->init();
   
   return(0);
@@ -152,6 +161,8 @@ cl_port::write(class cl_memory_cell *cell, t_mem *val)
     {
       (*val)&= 0xff; // 8 bit port
       nv= *val;
+      if ((port_pins & nv) != cfg->get(port_value))
+	cfg->write(port_value, port_pins & nv);
     }
   
   if (bas->is_owned(cell, &ba))
@@ -163,6 +174,8 @@ cl_port::write(class cl_memory_cell *cell, t_mem *val)
 	nv|= m;
       else
 	nv&= ~m;
+      if ((port_pins & nv) != cfg->get(port_value))
+	cfg->write(port_value, port_pins & nv);
     }
 
   conf(cell, val);
@@ -201,6 +214,10 @@ cl_port::conf_op(cl_memory_cell *cell, t_addr addr, t_mem *val)
       else
 	cell->set(port_pins);
       break;
+    case port_value:
+      if (val)
+	*val= cell->get();//cell->set(*val);
+      break;
     }
   return cell->get();
 }
@@ -220,6 +237,8 @@ cl_port::set_pin(t_mem val)
   ep.new_pins= port_pins;
   if (ep.pins != ep.new_pins)
     inform_partners(EV_PORT_CHANGED, &ep);
+  if ((port_pins & ep.prev_value) != cfg->get(port_value))
+    cfg->write(port_value, port_pins & ep.prev_value);
 }
 
 void

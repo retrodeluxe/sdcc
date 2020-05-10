@@ -1,3 +1,86 @@
+2019-01-07 Philipp Klaus Krause <pkk AT spth.de>
+
+	* lib/variables.mk:
+	  Replace ucr3ka test by ez80-z80 test.
+
+2018-10-25 Philipp Klaus Krause <pkk AT spth.de>
+
+	* lib/variables.mk:
+	  Enable regression testing for z80 with --reserve-regs-iy.
+
+2018-08-22 Philipp Klaus Krause <pkk AT spth.de>
+
+	* sdcc-build-bootstrap.sh:
+	  Prefer gmake over make.
+
+2018-08-22 Philipp Klaus Krause <pkk AT spth.de>
+
+	* sdcc-build-bootstrap.sh:
+	  Do not rely on non-portable sleep behaviour.
+
+2018-06-12 Ben Shi <powerstudio1st AT 163 DOT com>
+
+	* local/archlinux-respberrypi-3.mk:
+	  Removed.
+	* local/alarm.mk:
+	  Renamed from for archlinux/raspberrypi-3.
+
+2018-06-08 Ben Shi <powerstudio1st AT 163 DOT com>
+
+	* local/archlinux-respberrypi-3.mk:
+	  Add new makefile config for archlinux/raspberrypi3.
+
+2018-06-01 Erik Petrich <epetrich AT ivorytower.norman.ok.us>
+
+	* lib/bootstrap.mk: mingw-w64 needs libwinpthread-1.dll
+
+2018-05-24 Erik Petrich <epetrich AT ivorytower.norman.ok.us>
+
+	* components/sdcc.mk: skip valdiags testing under wine
+
+2018-03-17 Philipp Klaus Krause <pkk AT spth.de>
+
+	* lib/variables.mk:
+	  Alternate stm8 test with stm8-large test.
+
+2018-03-21 Erik Petrich <epetrich AT ivorytower.norman.ok.us>
+
+	* components/sdcc.mk: Only test diagnostics for supported
+	  ports rather than all regression test ports
+
+2018-03-17 Philipp Klaus Krause <pkk AT spth.de>
+
+	* components/sdcc.mk:
+	  Enable testing of diagnostics for snapshots.
+
+2017-12-01 Ben Shi <powerstudio1st AT 163 DOT com>
+
+	* local/cubieboard2.mk:
+	  Add special options for build machine cubieboard2.
+
+2017-11-02 Philipp Klaus Krause <pkk AT spth.de>
+
+	* lib/variables.mk:
+	  Alternate mcs51-small test with new mcs51-medium test.
+
+2017-10-30 Philipp Klaus Krause <pkk AT spth.de>
+
+	* lib/variables.mk:
+	  Test mcs51 huge model and tlcs90.
+
+2017-10-29 Philipp Klaus Krause <pkk AT spth.de>
+
+	* lib/doc-archive.mk:
+	  Update for current ucsim documentation files.
+
+2017-10-28 Philipp Klaus Krause <pkk AT spth.de>
+
+	* Makefile,
+	  README,
+	  lib/ports.mk,
+	  ports:
+	  Remove unused infrastructure for port-specific builds.
+
 2016-02-09 Maarten Brock <sourceforge.brock AT dse.nl>
 
 	* lib/local.mk: cosmetic only

@@ -59,7 +59,7 @@ OBJECTS_SHARED	= glob.o sim51.o \
 		  timer0.o timer1.o timer2.o serial.o port.o interrupt.o \
 		  wdt.o pca.o mdu.o \
 		  uc51.o uc52.o uc51r.o uc89c51r.o uc251.o uc517.o \
-		  uc390.o uc390hw.o uc521.o uc88x.o uc380.o
+		  uc390.o uc390hw.o uc521.o uc88x.o uc320.o uc380.o
 OBJECTS_EXE	= s51.o 
 OBJECTS		= $(OBJECTS_SHARED) $(OBJECTS_EXE)
 
@@ -125,7 +125,7 @@ include $(srcdir)/clean.mk
 
 s51.src: s51$(EXEEXT) shared_lib
 
-s51$(EXEEXT): $(OBJECTS) $(top_builddir)/*.a
+s51$(EXEEXT): $(OBJECTS) $(top_builddir)/libcmd.a $(top_builddir)/libguiucsim.a $(top_builddir)/libsim.a $(top_builddir)/libucsimutil.a
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
 
 ifeq ($(dlso_ok),yes)
@@ -139,10 +139,19 @@ endif
 $(top_builddir)/s51.so: $(OBJECTS_SHARED)
 	$(CXX) -shared $(LDFLAGS) $(OBJECTS_SHARED) -o $@
 
-otherlibs:
+otherlibs: $(top_builddir)/libcmd.a $(top_builddir)/libguiucsim.a $(top_builddir)/libsim.a $(top_builddir)/libucsimutil.a
+
+$(top_builddir)/libcmd.a:
 	$(MAKE) -C $(top_builddir)/cmd.src all
-	$(MAKE) -C $(top_builddir)/sim.src all
+
+$(top_builddir)/libguiucsim.a:
 	$(MAKE) -C $(top_builddir)/gui.src checkconf ucsim_lib
+
+$(top_builddir)/libsim.a:
+	$(MAKE) -C $(top_builddir)/sim.src all
+
+$(top_builddir)/libucsimutil.a:
+	$(MAKE) -C $(top_builddir) -f main.mk
 
 .cc.o:
 	$(CXX) $(CXXFLAGS) $(PICOPT) $(CPPFLAGS) -c $< -o $@

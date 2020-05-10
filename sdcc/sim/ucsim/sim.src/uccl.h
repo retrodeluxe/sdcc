@@ -31,6 +31,7 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 // prj
 #include "stypes.h"
 #include "pobjcl.h"
+#include "pobjt.h"
 
 // sim
 #include "hwcl.h"
@@ -84,6 +85,56 @@ struct vcounter_t {
   t_mem wr;
 };
 
+class cl_omf_rec: public cl_base
+{
+ protected:
+  unsigned int f_offset, offset;
+ public:
+  u8_t type;
+  u16_t len;
+  u8_t *rec;
+  u8_t chk;
+ public:
+  cl_omf_rec(void);
+  virtual ~cl_omf_rec(void);
+  virtual unsigned char g(cl_f *f);
+  virtual u16_t pick_word(int i);
+  virtual chars pick_str(int i);
+  virtual bool read(cl_f *f);
+};
+
+class cl_cdb_rec: public cl_base
+{
+ public:
+  chars fname;
+  t_addr addr;
+ public:
+ cl_cdb_rec(chars fn): cl_base() { fname= fn; }
+ cl_cdb_rec(chars fn, t_addr a): cl_base() { fname= fn; addr= a; }
+};
+
+class cl_cdb_recs: public cl_sorted_list
+{
+ public:
+ cl_cdb_recs(): cl_sorted_list(2,2,"cdb_recs_list") {}
+  virtual void *key_of(void *item)
+  { return (char*)(((cl_cdb_rec *)item)->fname); }
+  virtual int compare(void *k1, void *k2) {
+    return strcmp((char*)k1,(char*)k2);
+  }
+  virtual cl_cdb_rec *rec(chars n) {
+    t_index i;
+    if (search((char*)n, i))
+      return (cl_cdb_rec*)(at(i));
+    return NULL;
+  }
+  virtual void del(chars n) {
+    t_index i;
+    if (search((char*)n,i))
+      free_at(i);
+  }
+};
+
 /* Abstract microcontroller */
 
 class cl_uc: public cl_base
@@ -122,7 +173,8 @@ public:
   //class cl_list *address_decoders;
   class cl_address_space *variables;
   class cl_var_list *vars;
-  
+
+  bool irq;
   class cl_irqs *it_sources;	// Sources of interrupts
   class cl_list *it_levels;	// Follow interrupt services
   class cl_list *stack_ops;	// Track stack operations
@@ -153,12 +205,20 @@ public:
   virtual void write_mem(char *id, t_addr addr, t_mem val);
   virtual void set_mem(char *id, t_addr addr, t_mem val);
   virtual class cl_address_space *address_space(const char *id);
+  virtual class cl_address_space *address_space(class cl_memory_cell *cell);
+  virtual class cl_address_space *address_space(class cl_memory_cell *cell, t_addr *addr);
   virtual class cl_memory *memory(const char *id);
 
   // file handling
   virtual void set_rom(t_addr addr, t_mem val);
   virtual long read_hex_file(const char *nam);
-
+  virtual long read_hex_file(cl_console_base *con);
+  virtual long read_hex_file(cl_f *f);
+  virtual long read_omf_file(cl_f *f);
+  virtual long read_cdb_file(cl_f *f);
+  virtual cl_f *find_loadable_file(chars nam);
+  virtual long read_file(chars nam, class cl_console_base *con);
+  
   // instructions, code analyzer
   virtual void analyze(t_addr addr) {}
   virtual bool inst_at(t_addr addr);
@@ -229,17 +289,14 @@ public:
   // disassembling and symbol recognition
   virtual char *disass(t_addr addr, const char *sep);
   virtual struct dis_entry *dis_tbl(void);
-  virtual struct name_entry *sfr_tbl(void);
-  virtual struct name_entry *bit_tbl(void);
   virtual void print_disass(t_addr addr, class cl_console_base *con);
   virtual void print_regs(class cl_console_base *con);
   virtual int inst_length(t_addr addr);
   virtual int inst_branch(t_addr addr);
   virtual bool is_call(t_addr addr);
   virtual int longest_inst(void);
-  virtual bool get_name(t_addr addr, struct name_entry tab[], char *buf);
-  virtual bool symbol2address(char *sym, struct name_entry tab[],
-			      t_addr *addr);
+  virtual bool addr_name(t_addr addr, class cl_address_space *as, char *buf);
+  virtual bool addr_name(t_addr addr, class cl_address_space *as, int bitnr, char *buf);
   virtual bool symbol2address(char *sym,
 			      class cl_address_space **as,
 			      t_addr *addr);
@@ -249,6 +306,8 @@ public:
 				  t_mem bit_mask);
   virtual name_entry *get_name_entry(struct name_entry tabl[],
 				     char *name);
+  virtual chars cell_name(class cl_memory_cell *cell);
+  virtual class cl_var *var(char *nam);
   
   /* Converting abstract address spaces into real ones */
   virtual class cl_address_space *bit2mem(t_addr bitaddr,

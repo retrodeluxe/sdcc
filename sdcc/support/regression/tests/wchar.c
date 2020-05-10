@@ -6,11 +6,20 @@
 #include <stdio.h>
 #include <limits.h>
 #include <string.h>
+#include <errno.h>
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199409L
 #include <wchar.h>
 #endif
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
 #include <uchar.h>
+#endif
+
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#include <stdint.h>
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+_Static_assert(!WCHAR_MIN, "nonzero WCHAR_MIN");
+_Static_assert(WEOF <= WINT_MAX, "WEOF out of wint_t range");
+#endif
 #endif
 
 static void
@@ -27,6 +36,14 @@ testwcharnorestart(void)
 	ASSERT(wctob(btowc('C')) == 'C');
 	ASSERT(btowc(EOF) == WEOF);
 	ASSERT(wctob(WEOF) == EOF);
+
+	ASSERT(wctomb(c, L'W') == 1);
+	ASSERT(c[0] == 'W');
+#ifdef __STDC_ISO_10646__
+	ASSERT(wctomb(c, 0x110000) == -1); // Invalid: Out of 21-bit Unicode range.
+	ASSERT(wctomb(c, 0xd800) == -1);   // Invalid: Unpaired UTF-16 surrogate.
+	ASSERT(wctomb(c, 0xdfff) == -1);   // Invalid: Unpaired UTF-16 surrogate.
+#endif
 #endif
 }
 
@@ -46,10 +63,12 @@ testwcharstringnorestart(void)
 	ASSERT(wcs2[3] == L't');
 	ASSERT(!wcscmp(wcs1, wcs2));
 
+#if !(defined (__GNUC__) && defined (__GNUC_MINOR__) && ((__GNUC__ < 5) || (__GNUC__ == 5 && __GNUC_MINOR__ < 5)))
 	// Test for 0-terminated strings
 	ASSERT(wcstombs(mbs, wcs1, 1000) > 0);
 	ASSERT(mbstowcs(wcs2, mbs, 1000) > 0);
 	ASSERT(!wcscmp(wcs1, wcs2));
+#endif
 
 	// Test for unterminated strings
 	mbs[2] = 0;
@@ -71,9 +90,17 @@ testwcharrestart(void)
 
 	c[0] = 'C';
 	ASSERT(mbrtowc(&w, c, 1, &ps) == 1);
+	ASSERT(w == (L"C")[0]);
 	ASSERT(wcrtomb(c, w, &ps) == 1);
 	ASSERT(c[0] == 'C');
 	ASSERT(mbrtowc(&w, c, 1, &ps) == mbrlen(c, 1, &ps));
+#ifdef __STDC_ISO_10646__
+	errno = 0;
+	ASSERT(wcrtomb(c, 0x110000, 0) == -1); // Invalid: Out of 21-bit Unicode range.
+	ASSERT(errno == EILSEQ);
+	ASSERT(wcrtomb(c, 0xd800, 0) == -1);   // Invalid: Unpaired UTF-16 surrogate.
+	ASSERT(wcrtomb(c, 0xdfff, 0) == -1);   // Invalid: Unpaired UTF-16 surrogate.
+#endif
 #endif
 }
 
@@ -87,8 +114,25 @@ testchar16restart(void)
 
 	c[0] = 'C';
 	ASSERT(mbrtoc16(c16, c, 1, &ps) == 1);
+	ASSERT(c16[0] == (u"C")[0]);
 	ASSERT(c16rtomb(c, c16[0], &ps) == 1);
 	ASSERT(c[0] == 'C');
+
+	ASSERT(c16rtomb(0, c16[0], 0) == 1);
+
+#ifdef __STDC_UTF_16__
+	ASSERT(c16rtomb(c, 0xdc00, 0) == -1);  // Invalid: Unpaired UTF-16 surrogate.
+	ASSERT(errno == EILSEQ);
+
+	errno = 0;
+	ASSERT(c16rtomb(c, u'\0', 0) == 1);    // Converting a 0 character resets internal state.
+
+	ASSERT(c16rtomb(c, 0xd800, 0) == 0);
+	ASSERT(c16rtomb(c, 0xd800, 0) == -1);  // Invalid: Unpaired UTF-16 surrogate.
+	ASSERT(errno == EILSEQ);
+	errno = 0;
+	ASSERT(c16rtomb(c, u'\0', 0) == 1);    // Converting a 0 character resets internal state.
+#endif
 #endif
 }
 
@@ -102,6 +146,7 @@ testchar32restart(void)
 
 	c[0] = 'C';
 	ASSERT(mbrtoc32(c32, c, 1, &ps) == 1);
+	ASSERT(c32[0] == (U"C")[0]);
 	ASSERT(c32rtomb(c, c32[0], &ps) == 1);
 	ASSERT(c[0] == 'C');
 #endif

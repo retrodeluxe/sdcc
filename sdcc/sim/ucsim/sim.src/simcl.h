@@ -56,7 +56,7 @@ public:
   class cl_gui *gui;
   class cl_hw *simif;
   
-  double start_at;
+  double start_at, stop_at;
   unsigned long start_tick;
   unsigned long steps_done;
   unsigned long steps_todo; // use this if not 0
@@ -72,8 +72,8 @@ public:
   virtual class cl_uc *get_uc(void) { return(uc); }
 
   virtual void start(class cl_console_base *con, unsigned long steps_to_do);
-  virtual void stop(int reason);
-  virtual void stop(class cl_ev_brk *brk);
+  virtual void stop(int reason, class cl_ev_brk *ebrk= NULL);
+  //virtual void stop(class cl_ev_brk *brk);
   virtual int step(void);
 };
 
