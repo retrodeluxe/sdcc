@@ -315,9 +315,9 @@ do_pragma (int id, const char *name, const char *cp)
 
         dbuf_c_str (&buffer);
         /* ugly, see comment in src/port.h (borutr) */
-        gbz80_port.mem.code_name = dbuf_detach (&buffer);
-        code->sname = gbz80_port.mem.code_name;
-        options.code_seg = (char *) gbz80_port.mem.code_name;
+        z80_port.mem.code_name = dbuf_detach (&buffer);
+        code->sname = z80_port.mem.code_name;
+        options.code_seg = (char *) z80_port.mem.code_name;
       }
       break;
 
