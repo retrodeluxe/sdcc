@@ -1912,7 +1912,7 @@ requiresHL (const asmop * aop)
 /* strtoul_z80: a wrapper to strtoul, which can also handle */
 /* hex numbers with a $ prefix.                             */
 /*----------------------------------------------------------*/
-static unsigned long int 
+static unsigned long int
 strtoul_z80asm (const char *nptr, char **endptr, int base)
 {
   char *p = NULL;
@@ -2378,7 +2378,7 @@ static void pointPairToAop (PAIR_ID pairId, const asmop *aop, int offset)
 
     case AOP_PAIRPTR:
       wassert (!offset);
-      
+
       shiftIntoPair (pairId, (asmop *) aop); // Legacy. Todo eliminate uses of shiftIntoPair() ?
 
       break;
@@ -4189,7 +4189,7 @@ genIpush (const iCode *ic)
       wassertl (0, "Encountered an unsupported spill push.");
       return;
     }
-      
+
   /* Scan ahead until we find the function that we are pushing parameters to.
      Count the number of addSets on the way to figure out what registers
      are used in the send set.
@@ -4589,7 +4589,7 @@ emitCall (const iCode *ic, bool ispcall)
         {
           werror (W_INDIR_BANKED);
         }
-      else if (IFFUNC_ISZ88DK_SHORTCALL (ftype)) 
+      else if (IFFUNC_ISZ88DK_SHORTCALL (ftype))
        {
           wassertl(0, "__z88dk_short_call via function pointer not implemented");
        }
@@ -4641,12 +4641,12 @@ emitCall (const iCode *ic, bool ispcall)
   else
     {
       /* make the call */
-      if (IFFUNC_ISBANKEDCALL (dtype))
+      if (IFFUNC_ISBANKEDCALL (dtype) && !IFFUNC_NONBANKED (dtype))
         {
           char *name = OP_SYMBOL (IC_LEFT (ic))->rname[0] ? OP_SYMBOL (IC_LEFT (ic))->rname : OP_SYMBOL (IC_LEFT (ic))->name;
-          emit2 ("call banked_call");
+          emit2 ("call __sdcc_banked_call");
           emit2 ("!dws", name);
-          emit2 ("!dw !bankimmeds", name);
+          emit2 ("!db !bankimmeds", name);
           regalloc_dry_run_cost += 6;
         }
       else
@@ -4656,12 +4656,12 @@ emitCall (const iCode *ic, bool ispcall)
               emit2 ("call 0x%04X", ulFromVal (OP_VALUE (IC_LEFT (ic))));
               regalloc_dry_run_cost += 3;
             }
-          else if ( IFFUNC_ISZ88DK_SHORTCALL(ftype) ) 
+          else if ( IFFUNC_ISZ88DK_SHORTCALL(ftype) )
             {
               int rst = ftype->funcAttrs.z88dk_shortcall_rst;
               int value = ftype->funcAttrs.z88dk_shortcall_val;
               emit2 ("rst 0x%02x", rst);
-              if ( value < 256 ) 
+              if ( value < 256 )
                 emit2 ("defb 0x%02x\n",value);
               else
                 emit2 ("defw 0x%04x\n",value);
@@ -4796,7 +4796,7 @@ genFunction (const iCode * ic)
     emit2 ("!functionlabeldef", sym->rname);
   else
     emit2 ("!globalfunctionlabeldef", sym->rname);
- 
+
   if (!regalloc_dry_run)
     genLine.lineCurr->isLabel = 1;
 
@@ -4952,7 +4952,7 @@ genEndFunction (iCode * ic)
   symbol *sym = OP_SYMBOL (IC_LEFT (ic));
   int retsize = getSize (sym->type->next);
   /* __critical __interrupt without an interrupt number is the non-maskable interrupt */
-  bool is_nmi = (IS_Z80 || IS_Z180 || IS_EZ80_Z80) && IFFUNC_ISCRITICAL (sym->type) && FUNC_INTNO (sym->type) == INTNO_UNSPEC; 
+  bool is_nmi = (IS_Z80 || IS_Z180 || IS_EZ80_Z80) && IFFUNC_ISCRITICAL (sym->type) && FUNC_INTNO (sym->type) == INTNO_UNSPEC;
 
   wassert (!regalloc_dry_run);
   wassertl (!_G.stack.pushed, "Unbalanced stack.");
@@ -5948,7 +5948,7 @@ genPlus (iCode * ic)
           regalloc_dry_run_cost += 1;
           i += 2;
         }
-       else if (!options.oldralloc && (!premoved || i) && !started && i == size - 2 && aopInReg (AOP (IC_RESULT (ic)), i, HL_IDX) && 
+       else if (!options.oldralloc && (!premoved || i) && !started && i == size - 2 && aopInReg (AOP (IC_RESULT (ic)), i, HL_IDX) &&
           aopInReg (leftop, i, E_IDX) && !bitVectBitValue (ic->rSurv, D_IDX))
         {
           if (aopInReg (leftop, i + 1, H_IDX) || aopInReg (leftop, i + 1, L_IDX))
@@ -6324,9 +6324,9 @@ genSub (const iCode *ic, asmop *result, asmop *left, asmop *right)
           _G.preserveCarry = !!size;
           continue;
         }
-      
+
       if (right->type != AOP_LIT)
-        {    
+        {
           if (!offset)
             {
               if (left->type == AOP_LIT && byteOfVal (left->aopu.aop_lit, offset) == 0x00 && aopInReg (right, offset, A_IDX))
@@ -6529,7 +6529,7 @@ genMultOneChar (const iCode * ic)
          cheapMove (ASMOP_E, 0, AOP (IC_LEFT (ic)), 0, true);
       else if (AOP_TYPE (IC_LEFT (ic)) == AOP_REG && AOP (IC_LEFT (ic))->aopu.aop_reg[0]->rIdx == C_IDX)
          cheapMove (ASMOP_E, 0, AOP (IC_RIGHT (ic)), 0, true);
-      else 
+      else
         {
           cheapMove (ASMOP_C, 0, AOP (IC_LEFT (ic)), 0, true);
           cheapMove (ASMOP_E, 0, AOP (IC_RIGHT (ic)), 0, true);
@@ -8045,7 +8045,7 @@ genAnd (const iCode * ic, iCode * ifx)
               offset++;
               continue;
             }
-          
+
           /* Testing for the border bits of the accumulator destructively is cheap. */
           if ((isLiteralBit (bytelit) == 0 || isLiteralBit (bytelit) == 7) && aopInReg (left->aop, 0, A_IDX) && !bitVectBitValue (ic->rSurv, A_IDX))
             {
@@ -9278,7 +9278,7 @@ genLeftShift (const iCode * ic)
             emit2 ("rl de");
             regalloc_dry_run_cost++;
           }
-          
+
           started = true;
           size -= 2, offset += 2;
         }
@@ -9614,7 +9614,7 @@ genRightShift (const iCode * ic)
     spillPair (PAIR_HL);
 
   while (size)
-    { 
+    {
       if (IS_RAB && !(is_signed && first) && size >= 2 && byteoffset < 2 && AOP_TYPE (result) == AOP_REG &&
         (getPartPairId (AOP (result), offset - 1) == PAIR_HL || getPartPairId (AOP (result), offset - 1) == PAIR_DE))
         {
@@ -10902,7 +10902,7 @@ genAddrOf (const iCode * ic)
       else
         setupPairFromSP (pair, sp_offset);
     }
-  else 
+  else
     {
       pair = getPairId (IC_RESULT (ic)->aop);
       if (pair == PAIR_INVALID)
@@ -12210,7 +12210,7 @@ done:
   freeAsmop (c, NULL);
   freeAsmop (dst, NULL);
 
-  
+
   if (saved_BC)
     _pop (PAIR_BC);
   if (saved_DE)
@@ -12228,7 +12228,7 @@ genBuiltInStrcpy (const iCode *ic, int nParams, operand **pparams)
   bool saved_BC = FALSE, saved_DE = FALSE, saved_HL = FALSE;
   int i;
   bool SomethingReturned;
-  
+
   SomethingReturned = (IS_ITEMP (IC_RESULT (ic)) &&
                       (OP_SYMBOL (IC_RESULT (ic))->nRegs ||
                       OP_SYMBOL (IC_RESULT (ic))->spildir ||
@@ -12916,4 +12916,3 @@ genZ80Code (iCode * lic)
   destroy_line_list ();
   freeTrace (&_G.trace.aops);
 }
-

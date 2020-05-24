@@ -434,7 +434,7 @@ static const ASM_MAPPING _asxxxx_mapping[] = {
    "; ---------------------------------"},
   {"functionlabeldef", "%s:"},
   {"globalfunctionlabeldef", "%s::"},
-  {"bankimmeds", "0     ; PENDING: bank support"},
+  {"bankimmeds", "(%s >> 16)"},
   {"los", "(%s & 0xFF)"},
   {"his", "(%s >> 8)"},
   {"hihis", "(%s >> 16)"},
@@ -563,4 +563,3 @@ const ASM_MAPPINGS asm_a390_mapping = {
   NULL,
   _a390_mapping
 };
-

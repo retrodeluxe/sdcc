@@ -513,7 +513,10 @@ outrxb(int i, struct expr *esp, int r)
                 } else {
                         if ((i == 1) && (!is_sdas() || !(is_sdas_target_8051_like() || is_sdas_target_stm8()))) {
                                 r |= R_BYTE | R_BYTX | esp->e_rlcf;
-                                if (r & R_MSB) {
+                                if (r & R_HIB) {
+                                        r |= R_BYT3;
+                                        out_lb(thrdbyte(esp->e_addr),r|R_RELOC|R_HIGH);
+                                } else if (r & R_MSB) {
                                         out_lb(hibyte(esp->e_addr),r|R_RELOC|R_HIGH);
                                 } else {
                                         out_lb(lobyte(esp->e_addr),r|R_RELOC);
@@ -527,8 +530,12 @@ outrxb(int i, struct expr *esp, int r)
                                         } else {
                                                 n = esp->e_base.e_ap->a_ref;
                                         }
-                                        *relp++ = r;
-                                        *relp++ = txtp - txt - a_bytes;
+                                        if (r & R_HIB) {
+                                                write_rmode(r, txtp - txt - a_bytes);
+                                        } else {
+                                                *relp++ = r;
+                                                *relp++ = txtp - txt - a_bytes;
+                                        }
                                         out_rw(n);
                                 }
                         } else {
@@ -1614,7 +1621,7 @@ frthbyte(a_uint v)
  *              int     pass            assembler pass number
  *              char *  relp            Pointer to R Line Values
  *              char *  txtp            Pointer to T Line Values
- *              
+ *
  *      functions called:
  *              VOID    outchk()        asout.c
  *              VOID    out_lw()        asout.c

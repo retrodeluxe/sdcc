@@ -335,6 +335,7 @@ relr3(void)
                 error = 0;
                 mode = (int) eval();
 
+
                 if ((mode & R_ESCAPE_MASK) == R_ESCAPE_MASK)
                 {
                         mode = ((mode & ~R_ESCAPE_MASK) << 8) | eval();
@@ -408,7 +409,8 @@ relr3(void)
                                 else if (mode & R_HIB)
                                 {
                                         /* printf("24 bit address selecting hi byte.\n"); */
-                                        relv = adb_24_hi(reli, rtp);
+                                        /** custom selection for msx banking */
+                                        relv = adb_hi_ext(reli, rtp);
                                 }
                                 else if (mode & R3_MSB)
                                 {
@@ -513,6 +515,7 @@ relr3(void)
                         /* 16 bit address. */
                         relv = adb_2b(reli, rtp);
                 }
+
 
                 /*
                  * R3_BYTE with R3_BYTX offset adjust
@@ -1110,6 +1113,32 @@ int     i;
                 if(n != m) rtflg[i+n] = 0;
         }
         return (j);
+}
+
+a_uint
+adb_hi_ext(v, i)
+a_uint  v;
+int     i;
+{
+        a_uint j;
+        int m, n;
+	j = v + (rtval[i+0] <<  0) +
+		(rtval[i+1] <<  8) +
+		(rtval[i+2] << 16);
+	rtval[i+0] = (j >>  0) & ((a_uint) 0x000000FF);
+	rtval[i+1] = (v >> 16) & ((a_uint) 0x000000FF);
+
+        j = (j & ((a_uint) 0x00800000) ? j | ~((a_uint) 0x007FFFFF) : j & ((a_uint) 0x007FFFFF));
+
+	/*
+         * MSB is next lowest order byte of data
+         */
+        m = (hilo ? a_bytes-2 : 1);
+	for (n=0; n < a_bytes; n++) {
+                if(n != m) rtflg[i+n] = 0;
+        }
+
+	return (j);
 }
 
 /* sdld specific */

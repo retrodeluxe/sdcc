@@ -1274,6 +1274,7 @@ extern  a_uint          adb_24_hi(a_uint v, int i);
 extern  a_uint          adb_24_mid(a_uint v, int i);
 extern  a_uint          adb_24_lo(a_uint v, int i);
 extern  a_uint          adb_hi(a_uint  v, int i);
+extern  a_uint          adb_hi_ext(a_uint  v, int i);
 extern  a_uint          adb_lo(a_uint  v, int i);
 extern  char *          errmsg3[];
 extern  VOID            errdmp3(FILE *fptr, char *str);

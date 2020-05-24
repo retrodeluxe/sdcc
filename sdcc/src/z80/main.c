@@ -42,6 +42,8 @@
 #define OPTION_OLDRALLOC       "--oldralloc"
 #define OPTION_FRAMEPOINTER    "--fno-omit-frame-pointer"
 #define OPTION_EMIT_EXTERNS    "--emit-externs"
+#define OPTION_MEDIUM_MODEL    "--model-medium"
+#define OPTION_LARGE_MODEL     "--model-large"
 
 static char _z80_defaultRules[] = {
 #include "peeph.rul"
@@ -81,6 +83,8 @@ static OPTION _z80_options[] = {
   {0, OPTION_OLDRALLOC,       &options.oldralloc, "Use old register allocator"},
   {0, OPTION_FRAMEPOINTER,    &z80_opts.noOmitFramePtr, "Do not omit frame pointer"},
   {0, OPTION_EMIT_EXTERNS,    NULL, "Emit externs list in generated asm"},
+  {0, OPTION_MEDIUM_MODEL,    NULL, "16-bit address space for both data and code (default)"},
+  {0, OPTION_LARGE_MODEL,     NULL, "16-bit address space for data, 24-bit for code"},
   {0, NULL}
 };
 
@@ -673,6 +677,14 @@ _finaliseOptions (void)
 {
   port->mem.default_local_map = data;
   port->mem.default_globl_map = data;
+
+  if (options.model == MODEL_LARGE)
+  {
+      port->s.funcptr_size = 3;
+      port->stack.call_overhead = 3;
+      port->jumptableCost.maxCount = 0;
+  }
+
   if (_G.asmType == ASM_TYPE_ASXXXX && IS_GB)
     asm_addTree (&_asxxxx_gb);
 
@@ -886,7 +898,7 @@ PORT z80_port =
   {
     glue,
     FALSE,
-    NO_MODEL,
+    NO_MODEL|MODEL_LARGE,
     NO_MODEL,
     NULL,                       /* model == target */
   },
@@ -1759,4 +1771,3 @@ PORT ez80_z80_port =
   9,                            /* Number of registers handled in the tree-decomposition-based register allocator in SDCCralloc.hpp */
   PORT_MAGIC
 };
-
