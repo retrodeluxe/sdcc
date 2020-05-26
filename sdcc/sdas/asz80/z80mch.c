@@ -2258,6 +2258,9 @@ minit()
          */
         hilo = 0;
 
+	// 24 bit address for bank support ihx file generation
+	exprmasks(3);
+
         if (pass == 0) {
                 mchtyp = X_Z80;
                 sym[2].s_addr = X_Z80;
