@@ -249,7 +249,8 @@ _reg_parm (sym_link *l, bool reentrant)
 
 enum
 {
-  P_BANK = 1,
+  P_CODEPAGE = 1,
+  P_DATAPAGE,
   P_PORTMODE,
   P_CODESEG,
   P_CONSTSEG,
@@ -266,7 +267,7 @@ do_pragma (int id, const char *name, const char *cp)
 
   switch (id)
     {
-    case P_BANK:
+    case P_CODEPAGE:
       {
         struct dbuf_s buffer;
 
@@ -284,7 +285,7 @@ do_pragma (int id, const char *name, const char *cp)
             switch (_G.asmType)
               {
               case ASM_TYPE_ASXXXX:
-                dbuf_printf (&buffer, "CODE_%d", token.val.int_val);
+                dbuf_printf (&buffer, "CODE_PAGE_%d", token.val.int_val);
                 break;
 
               case ASM_TYPE_RGBDS:
@@ -324,6 +325,56 @@ do_pragma (int id, const char *name, const char *cp)
         options.code_seg = (char *) z80_port.mem.code_name;
       }
       break;
+
+      case P_DATAPAGE:
+        {
+          struct dbuf_s buffer;
+
+          dbuf_init (&buffer, 128);
+
+          cp = get_pragma_token (cp, &token);
+
+          switch (token.type)
+          {
+            case TOKEN_EOL:
+                err = 1;
+                break;
+
+            case TOKEN_INT:
+                switch (_G.asmType)
+                {
+                 case ASM_TYPE_ASXXXX:
+                   dbuf_printf (&buffer, "DATA_PAGE_%d", token.val.int_val);
+                   break;
+
+                  default:
+                      wassert (0);
+                }
+                break;
+
+            default:
+            {
+             const char *str = get_pragma_string (&token);
+
+             dbuf_append_str (&buffer, (0 == strcmp ("BASE", str)) ? "DATA" : str);
+            }
+            break;
+          }
+
+          cp = get_pragma_token (cp, &token);
+          if (TOKEN_EOL != token.type)
+            {
+             err = 1;
+             break;
+            }
+
+          dbuf_c_str (&buffer);
+          /* ugly, see comment in src/port.h (borutr) */
+          z80_port.mem.data_name = dbuf_detach (&buffer);
+          code->sname = z80_port.mem.data_name;
+          options.data_seg = (char *) z80_port.mem.data_name;
+        }
+        break;
 
     case P_PORTMODE:
       {                         /*.p.t.20030716 - adding pragma to manipulate z80 i/o port addressing modes */
@@ -419,7 +470,8 @@ do_pragma (int id, const char *name, const char *cp)
 }
 
 static struct pragma_s pragma_tbl[] = {
-  {"bank", P_BANK, 0, do_pragma},
+  {"CODE_PAGE", P_CODEPAGE, 0, do_pragma},
+  {"DATA_PAGE", P_DATAPAGE, 0, do_pragma},
   {"portmode", P_PORTMODE, 0, do_pragma},
   {"codeseg", P_CODESEG, 0, do_pragma},
   {"constseg", P_CONSTSEG, 0, do_pragma},
@@ -499,7 +551,7 @@ _parseOptions (int *pargc, char **argv, int *i)
               struct dbuf_s buffer;
 
               dbuf_init (&buffer, 16);
-              dbuf_printf (&buffer, "CODE_%u", bank);
+              dbuf_printf (&buffer, "CODE_PAGE_%u", bank);
               dbuf_c_str (&buffer);
               /* ugly, see comment in src/port.h (borutr) */
               //gbz80_port.mem.code_name = dbuf_detach (&buffer);
@@ -514,7 +566,7 @@ _parseOptions (int *pargc, char **argv, int *i)
               struct dbuf_s buffer;
 
               dbuf_init (&buffer, 16);
-              dbuf_printf (&buffer, "DATA_%u", bank);
+              dbuf_printf (&buffer, "DATA_PAGE_%u", bank);
               dbuf_c_str (&buffer);
               /* ugly, see comment in src/port.h (borutr) */
               //gbz80_port.mem.data_name = dbuf_detach (&buffer);
