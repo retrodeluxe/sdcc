@@ -28,14 +28,19 @@ Fork of sdcc that provides msx specific extensions (mz80)
    to use one type of page (either CODE or DATA) per 0x10000 address range, even if they are not overlapping.
 
    * __sdcc_banked_call must be implemented in an non-banked area (HOME or CODE) and is up to the user
-
+   An example for ASCII8 ROMs can be found here: https://github.com/retrodeluxe/rlengine-msx1/blob/linker_exp/boot/bootASCII8.s
 
 ## Known issues
 
-   * Generated function preambles may be incorrect when using __nonbanked, this results in faulty parameter handling.
-   * Banked function pointers are (obviously) not supported, but they can be handled manually.
+* Generated function preambles may be incorrect when using __nonbanked, this results in faulty parameter handling.
+* Banked function pointers are (obviously) not supported, but they can be handled manually.
 
 ## Todo
 
 * Add an msx specific sub port instead of using mz80
 * Add support for R800 MUL* instructions
+
+## Conversion from Intel Hex Format to MSX ROM
+
+* The Linker produces an IHX file with 24bit address space that needs to be split into pages of the appropiate size and assembled as a ROM file. This can be done by modifying the hex2bin tool accordingly.
+* An example for ASCII8 ROMs can be found here:  https://github.com/retrodeluxe/rlengine-msx1/blob/linker_exp/tools/hex2rom.c
