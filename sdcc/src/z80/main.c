@@ -732,8 +732,8 @@ _finaliseOptions (void)
 
   if (options.model == MODEL_LARGE)
   {
-      port->s.funcptr_size = 3;
-      port->stack.call_overhead = 3;
+      port->s.funcptr_size = 2;
+      port->stack.call_overhead = 2;
       port->jumptableCost.maxCount = 0;
   }
 
