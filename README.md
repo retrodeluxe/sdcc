@@ -29,11 +29,13 @@ Fork of sdcc that provides msx specific extensions (mz80)
 
    * __sdcc_banked_call must be implemented in an non-banked area (HOME or CODE) and is up to the user
 
-## todo
 
-* Add new sub ports instead of using mz80
-	* msx
-	* msxtR
+## Known issues
+
+   * Generated function preambles may be incorrect when using __nonbanked, this results in faulty parameter handling.
+   * Banked function pointers are (obviously) not supported, but they can be handled manually.
+
+## Todo
+
+* Add an msx specific sub port instead of using mz80
 * Add support for R800 MUL* instructions
-* Add some reference implementation of __sdcc_banked_call in a device library
-* Add makebin version to extract pages from ihx and assemble a functioning ROM
