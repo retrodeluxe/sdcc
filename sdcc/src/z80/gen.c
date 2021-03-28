@@ -4839,6 +4839,11 @@ genFunction (const iCode * ic)
               _G.stack.param_offset += 2;
             }
         }
+      // Ensure nonbaked functions have right param offset
+      if (IFFUNC_NONBANKED(sym->type))
+      {
+        _G.stack.param_offset += 2;
+      }
     }
 
   if (options.profile)
