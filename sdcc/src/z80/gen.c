@@ -4839,8 +4839,8 @@ genFunction (const iCode * ic)
               _G.stack.param_offset += 2;
             }
         }
-      // Ensure nonbaked functions have right param offset
-      if (IFFUNC_NONBANKED(sym->type))
+      // Ensure nonbaked functions have right param offset, but only on model large
+      if (IFFUNC_NONBANKED(sym->type) && options.model == MODEL_LARGE)
       {
         _G.stack.param_offset += 2;
       }
