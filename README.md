@@ -32,7 +32,6 @@ Fork of sdcc that provides msx specific extensions (mz80)
 
 ## Known issues
 
-* Generated function preambles may be incorrect when using __nonbanked, this results in faulty parameter handling.
 * Banked function pointers are (obviously) not supported, but they can be handled manually.
 
 ## Todo
